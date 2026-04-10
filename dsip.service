@@ -1,0 +1,23 @@
+[Unit]
+Description=DSIP MapManager (Docker)
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=djooga
+Group=djooga
+WorkingDirectory=/home/djooga/maps
+
+ExecStart=/usr/bin/docker compose up --no-color
+ExecStop=/usr/bin/docker compose down
+
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

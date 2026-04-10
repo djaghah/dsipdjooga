@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  dsip:
+    build: .
+    container_name: dsip-mapmanager
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:1978:1978"  # Only localhost — nginx handles external traffic
+    volumes:
+      - ./data:/app/data        # Persist database
+      - ./uploads:/app/uploads  # Persist user uploads
+    read_only: true             # Read-only filesystem (except volumes)
+    tmpfs:
+      - /tmp:size=50M           # Temp files in RAM
+    security_opt:
+      - no-new-privileges:true  # Prevent privilege escalation
+    cap_drop:
+      - ALL                     # Drop all Linux capabilities
+    mem_limit: 512m             # Memory limit
+    cpus: '1.0'                 # CPU limit
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

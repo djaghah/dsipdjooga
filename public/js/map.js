@@ -436,24 +436,59 @@ window.MapManager = {
       m.setMap(null);
     });
     this.markers = [];
-    this._svgUrlCache = {}; // Clear icon cache on project switch
+    this._iconReady = {};
     if (this.infoWindow) this.infoWindow.close();
   },
 
-  // Pre-build SVG data URLs cache to avoid re-encoding same SVGs
-  _svgUrlCache: {},
-  _getSvgUrl(iconType, iconIndex) {
+  // Convert SVG to PNG data URL via Canvas (reliable at all zoom levels)
+  _iconCache: {},
+  _iconReady: {},
+  _preRenderIcon(iconType, iconIndex) {
     const key = `${iconType}_${iconIndex}`;
-    if (this._svgUrlCache[key]) return this._svgUrlCache[key];
+    if (this._iconCache[key]) return;
+
     const FALLBACK = `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" width="64" height="64"><path d="M32 4C20 4 12 14 12 24C12 38 32 60 32 60S52 38 52 24C52 14 44 4 32 4Z" fill="#e74c3c"/><circle cx="32" cy="24" r="8" fill="#fff"/></svg>`;
     let svg = Icons.getIconByType(iconType, iconIndex);
     if (!svg || typeof svg !== 'string' || !svg.includes('<svg')) svg = FALLBACK;
-    // Ensure xmlns + explicit width/height (critical for consistent rendering as data URL)
     if (!svg.includes('xmlns')) svg = svg.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
-    if (!svg.includes('width=')) svg = svg.replace('<svg ', '<svg width="64" height="64" ');
-    const url = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
-    this._svgUrlCache[key] = url;
-    return url;
+    if (!svg.includes('width=')) svg = svg.replace(/^<svg /, '<svg width="64" height="64" ');
+
+    const SIZE = 80; // render at 80px for crisp display at 40px marker
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, SIZE, SIZE);
+      URL.revokeObjectURL(url);
+      this._iconCache[key] = canvas.toDataURL('image/png');
+      // If markers are waiting for this icon, update them
+      if (this._iconReady[key]) {
+        this._iconReady[key].forEach(gm => {
+          gm.setIcon({
+            url: this._iconCache[key],
+            scaledSize: new google.maps.Size(40, 40),
+            anchor: new google.maps.Point(20, 20)
+          });
+        });
+        delete this._iconReady[key];
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      // Fallback: use SVG data URL directly
+      this._iconCache[key] = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+    };
+    img.src = url;
+  },
+
+  _getIconUrl(iconType, iconIndex) {
+    const key = `${iconType}_${iconIndex}`;
+    return this._iconCache[key] || null;
   },
 
   displayMarkers(markerData) {
@@ -465,19 +500,33 @@ window.MapManager = {
     const bounds = new google.maps.LatLngBounds();
     const useCluster = !!window.markerClusterer && markerData.length > 10;
 
+    // Pre-render all needed icons
+    const iconKeys = new Set();
+    markerData.forEach(d => {
+      if (this.mode === 'view' && d.status === 'inactive') return;
+      iconKeys.add(`${d.icon_type}_${d.icon_index}`);
+      this._preRenderIcon(d.icon_type, d.icon_index);
+    });
+
     markerData.forEach(data => {
       if (this.mode === 'view' && data.status === 'inactive') return;
 
-      const svgUrl = this._getSvgUrl(data.icon_type, data.icon_index);
+      const key = `${data.icon_type}_${data.icon_index}`;
+      const pngUrl = this._getIconUrl(data.icon_type, data.icon_index);
 
-      // Don't add to map directly if using clustering — clusterer will manage it
       const gm = new google.maps.Marker({
         position: { lat: data.lat, lng: data.lng },
         map: useCluster ? null : this.map,
         title: data.title || Icons.getIconName(data.icon_type, data.icon_index),
-        icon: { url: svgUrl, scaledSize: new google.maps.Size(40, 40), anchor: new google.maps.Point(20, 20) },
+        icon: pngUrl ? { url: pngUrl, scaledSize: new google.maps.Size(40, 40), anchor: new google.maps.Point(20, 20) } : undefined,
         opacity: data.status === 'inactive' ? 0.4 : 1
       });
+
+      // If icon not ready yet (still rendering), queue for update
+      if (!pngUrl) {
+        if (!this._iconReady[key]) this._iconReady[key] = [];
+        this._iconReady[key].push(gm);
+      }
 
       // Hover
       gm.addListener('mouseover', () => {
