@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DSIP MapManager</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' stroke='%234f6ef7' stroke-width='2' fill='none' opacity='0.5'/><circle cx='16' cy='10' r='3' fill='%234f6ef7'/><circle cx='10' cy='20' r='2.5' fill='%234f6ef7' opacity='0.7'/><circle cx='22' cy='18' r='2.5' fill='%234f6ef7' opacity='0.85'/></svg>">
+  <link rel="stylesheet" href="/css/style.css?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+</head>
+<body>
+  <!-- ==================== LOGIN PAGE ==================== -->
+  <div id="view-login" class="view active">
+    <div class="login-bg">
+      <div class="floating-shapes">
+        <div class="shape shape-1"></div><div class="shape shape-2"></div><div class="shape shape-3"></div>
+        <div class="shape shape-4"></div><div class="shape shape-5"></div><div class="shape shape-6"></div>
+      </div>
+
+      <!-- Animated showcase (left side) -->
+      <div class="login-showcase">
+        <div class="showcase-item showcase-1">
+          <div class="showcase-icon"><span class="material-icons-round">map</span></div>
+          <div class="showcase-text">Gestionează locații pe hartă interactivă</div>
+        </div>
+        <div class="showcase-item showcase-2">
+          <div class="showcase-icon"><span class="material-icons-round">local_fire_department</span></div>
+          <div class="showcase-text">Hidranți, semne rutiere, infrastructură</div>
+        </div>
+        <div class="showcase-item showcase-3">
+          <div class="showcase-icon"><span class="material-icons-round">groups</span></div>
+          <div class="showcase-text">Echipe, responsabili, mentenanță</div>
+        </div>
+        <div class="showcase-item showcase-4">
+          <div class="showcase-icon"><span class="material-icons-round">analytics</span></div>
+          <div class="showcase-text">Monitorizare stare, costuri, garanții</div>
+        </div>
+      </div>
+
+      <!-- Login card (right side) -->
+      <div class="login-card animate-in">
+        <div class="login-logo">
+          <div class="logo-icon">
+            <svg viewBox="0 0 80 80" fill="none">
+              <circle cx="40" cy="40" r="36" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <circle cx="40" cy="26" r="5" fill="var(--accent)"/><circle cx="28" cy="48" r="4" fill="var(--accent)" opacity="0.7"/>
+              <circle cx="54" cy="42" r="4.5" fill="var(--accent)" opacity="0.85"/>
+              <path d="M40 26 L28 48 M40 26 L54 42 M28 48 L54 42" stroke="var(--accent)" stroke-width="1.5" opacity="0.4"/>
+            </svg>
+          </div>
+          <h1>DSIP <span>MapManager</span></h1>
+          <p class="login-subtitle">Platformă de management geografic</p>
+        </div>
+        <button class="btn-google" onclick="window.location.href='/auth/google'">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          <span>Conectare cu Google</span>
+        </button>
+        <div class="login-features">
+          <div class="feature-item animate-stagger-1"><span class="material-icons-round">map</span><span>Hărți Interactive</span></div>
+          <div class="feature-item animate-stagger-2"><span class="material-icons-round">push_pin</span><span>Markere Custom</span></div>
+          <div class="feature-item animate-stagger-3"><span class="material-icons-round">folder</span><span>Proiecte</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== UNAUTHORIZED PAGE ==================== -->
+  <div id="view-unauthorized" class="view">
+    <div class="login-bg">
+      <div class="floating-shapes"><div class="shape shape-1"></div><div class="shape shape-2"></div><div class="shape shape-3"></div></div>
+      <div class="login-card animate-in" style="max-width:480px">
+        <span class="material-icons-round" style="font-size:64px;color:var(--warning);margin-bottom:16px">lock</span>
+        <h2 style="margin-bottom:8px">Acces Restricționat</h2>
+        <p style="color:var(--text-secondary);margin-bottom:24px">Contul tău (<strong id="unauth-email"></strong>) nu are acces la platformă. Completează formularul de mai jos pentru a solicita acces.</p>
+        <div style="text-align:left;width:100%">
+          <div class="form-group" style="margin-bottom:12px">
+            <label>Nume</label>
+            <input id="contact-name" type="text" class="form-input" placeholder="Numele tău">
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label>Mesaj</label>
+            <textarea id="contact-message" class="form-input" rows="3" placeholder="De ce ai dori acces la platformă?"></textarea>
+          </div>
+          <button id="btn-send-contact" class="btn btn-accent" style="width:100%">
+            <span class="material-icons-round">send</span> Trimite Cerere
+          </button>
+          <p id="contact-sent-msg" style="display:none;color:var(--success);text-align:center;margin-top:12px">Cererea a fost trimisă! Vei fi contactat.</p>
+        </div>
+        <button class="btn btn-secondary" style="margin-top:16px;width:100%" onclick="fetch('/auth/logout',{method:'POST'}).then(()=>location.reload())">
+          <span class="material-icons-round">logout</span> Deconectare
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SUBSCRIPTION EXPIRED ==================== -->
+  <div id="view-expired" class="view">
+    <div class="login-bg">
+      <div class="floating-shapes"><div class="shape shape-1"></div><div class="shape shape-2"></div></div>
+      <div class="login-card animate-in" style="max-width:480px">
+        <span class="material-icons-round" style="font-size:64px;color:var(--danger);margin-bottom:16px">event_busy</span>
+        <h2 style="margin-bottom:8px">Abonament Expirat</h2>
+        <p style="color:var(--text-secondary);margin-bottom:24px">Abonamentul tău a expirat pe <strong id="expired-date"></strong>. Contactează administratorul pentru reînnoire.</p>
+        <div style="text-align:left;width:100%">
+          <div class="form-group" style="margin-bottom:12px">
+            <label>Mesaj</label>
+            <textarea id="expired-message" class="form-input" rows="3" placeholder="Doresc reînnoirea abonamentului..."></textarea>
+          </div>
+          <button id="btn-send-expired" class="btn btn-accent" style="width:100%">
+            <span class="material-icons-round">send</span> Solicită Reînnoire
+          </button>
+          <p id="expired-sent-msg" style="display:none;color:var(--success);text-align:center;margin-top:12px">Cererea a fost trimisă!</p>
+        </div>
+        <button class="btn btn-secondary" style="margin-top:16px;width:100%" onclick="fetch('/auth/logout',{method:'POST'}).then(()=>location.reload())">
+          <span class="material-icons-round">logout</span> Deconectare
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== DASHBOARD ==================== -->
+  <div id="view-dashboard" class="view">
+    <!-- HEADER / BANNER -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo-small">
+          <svg viewBox="0 0 32 32" fill="none" width="32" height="32">
+            <circle cx="16" cy="16" r="14" stroke="var(--accent)" stroke-width="2" opacity="0.5"/>
+            <circle cx="16" cy="10" r="3" fill="var(--accent)"/>
+            <circle cx="10" cy="20" r="2.5" fill="var(--accent)" opacity="0.7"/>
+            <circle cx="22" cy="18" r="2.5" fill="var(--accent)" opacity="0.85"/>
+          </svg>
+          <span class="logo-text">DSIP</span>
+        </div>
+
+        <!-- Project selector -->
+        <div class="project-selector">
+          <button id="btn-project-select" class="btn-project-select">
+            <div id="project-avatar" class="project-avatar-small"></div>
+            <span id="project-name" data-i18n="dashboard.selectProject">Select Project</span>
+            <span class="material-icons-round">expand_more</span>
+          </button>
+          <div id="project-dropdown" class="dropdown-menu project-dropdown hidden">
+            <div id="project-list" class="project-list"></div>
+            <div class="dropdown-divider"></div>
+            <button id="btn-manage-projects" class="dropdown-item">
+              <span class="material-icons-round">settings</span>
+              <span data-i18n="dashboard.manageProjects">Manage Projects</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <!-- Maps usage indicator -->
+        <div class="maps-usage" title="Google Maps API Usage">
+          <span class="material-icons-round">api</span>
+          <div class="usage-bar">
+            <div id="usage-fill" class="usage-fill"></div>
+          </div>
+          <span id="usage-text" class="usage-text">--/--</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Admin role toggle (only visible for admins) -->
+        <div id="admin-role-toggle" class="admin-role-toggle hidden">
+          <span class="material-icons-round" style="font-size:14px;color:var(--warning)">shield</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-admin-view" checked>
+            <span class="switch-slider"></span>
+          </label>
+          <span id="admin-role-label" style="font-size:11px;font-weight:600;color:var(--warning)">ADMIN</span>
+        </div>
+
+        <!-- Admin panel button -->
+        <button id="btn-admin-panel" class="mode-btn hidden" title="Admin Panel" style="border-radius:var(--radius-sm);border:1px solid var(--border);padding:6px 10px;color:var(--warning)">
+          <span class="material-icons-round" style="font-size:18px">admin_panel_settings</span>
+        </button>
+
+        <!-- POI toggle -->
+        <button id="btn-toggle-poi" class="mode-btn active" title="Ascunde POI Google" style="border-radius:var(--radius-sm);border:1px solid var(--border);padding:6px 10px">
+          <span class="material-icons-round" style="font-size:18px">local_hospital</span>
+        </button>
+
+        <!-- View mode toggle -->
+        <div class="view-mode-toggle">
+          <button id="btn-mode-view" class="mode-btn active" title="View Mode">
+            <span class="material-icons-round">visibility</span>
+          </button>
+          <button id="btn-mode-admin" class="mode-btn" title="Admin Mode">
+            <span class="material-icons-round">edit_location_alt</span>
+          </button>
+        </div>
+
+        <!-- User menu -->
+        <div class="user-menu-wrapper">
+          <button id="btn-user-menu" class="btn-user-menu">
+            <img id="user-avatar" class="user-avatar" src="" alt="">
+            <span id="user-name" class="user-name"></span>
+            <span class="material-icons-round">expand_more</span>
+          </button>
+          <div id="user-dropdown" class="dropdown-menu user-dropdown hidden">
+            <div class="dropdown-section">
+              <label class="dropdown-label" data-i18n="menu.theme">Theme</label>
+              <div class="theme-toggle-row">
+                <button id="btn-theme-light" class="theme-btn active" title="Light">
+                  <span class="material-icons-round">light_mode</span>
+                </button>
+                <button id="btn-theme-dark" class="theme-btn" title="Dark">
+                  <span class="material-icons-round">dark_mode</span>
+                </button>
+              </div>
+            </div>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-section">
+              <label class="dropdown-label" data-i18n="menu.language">Language</label>
+              <div class="lang-grid">
+                <button class="lang-btn" data-lang="en">🇬🇧 EN</button>
+                <button class="lang-btn" data-lang="ro">🇷🇴 RO</button>
+                <button class="lang-btn" data-lang="de">🇩🇪 DE</button>
+                <button class="lang-btn" data-lang="fr">🇫🇷 FR</button>
+              </div>
+            </div>
+            <div class="dropdown-divider"></div>
+            <button id="btn-logout" class="dropdown-item danger">
+              <span class="material-icons-round">logout</span>
+              <span data-i18n="menu.logout">Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="app-main">
+      <!-- LEFT SIDEBAR -->
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+          <h3 id="sidebar-title" data-i18n="sidebar.markers">Markers</h3>
+          <button id="btn-toggle-sidebar" class="btn-icon" title="Toggle sidebar">
+            <span class="material-icons-round">chevron_left</span>
+          </button>
+        </div>
+
+        <!-- Search in sidebar -->
+        <div class="sidebar-search">
+          <span class="material-icons-round">search</span>
+          <input id="sidebar-search-input" type="text" data-i18n-placeholder="sidebar.search" placeholder="Search markers...">
+        </div>
+
+        <!-- View toggle: All / In View -->
+        <div class="sidebar-view-toggle">
+          <button id="btn-view-all" class="view-toggle-btn active">
+            <span class="material-icons-round" style="font-size:16px">list</span> <span data-i18n="view.all">All</span>
+          </button>
+          <button id="btn-view-inview" class="view-toggle-btn">
+            <span class="material-icons-round" style="font-size:16px">crop_free</span> <span data-i18n="view.inView">In view</span>
+          </button>
+        </div>
+
+        <!-- Filter controls -->
+        <div class="sidebar-filters">
+          <select id="filter-status" class="filter-select">
+            <option value="" data-i18n="filter.allStatus">All Status</option>
+            <option value="active" data-i18n="filter.active">Active</option>
+            <option value="inactive" data-i18n="filter.inactive">Inactive</option>
+            <option value="maintenance" data-i18n="filter.maintenance">Maintenance</option>
+          </select>
+          <select id="filter-condition" class="filter-select">
+            <option value="" data-i18n="filter.allCondition">All Conditions</option>
+            <option value="good" data-i18n="filter.good">Good</option>
+            <option value="fair" data-i18n="filter.fair">Fair</option>
+            <option value="poor" data-i18n="filter.poor">Poor</option>
+            <option value="critical" data-i18n="filter.critical">Critical</option>
+          </select>
+        </div>
+
+        <!-- Marker list -->
+        <div id="marker-list" class="marker-list">
+          <div class="empty-state">
+            <span class="material-icons-round">place</span>
+            <p data-i18n="sidebar.noMarkers">No markers yet</p>
+          </div>
+        </div>
+
+        <!-- Sidebar stats -->
+        <div class="sidebar-stats">
+          <div class="stat">
+            <span class="stat-value" id="stat-total">0</span>
+            <span class="stat-label" data-i18n="stats.total">Total</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="stat-active">0</span>
+            <span class="stat-label" data-i18n="stats.active">Active</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="stat-maintenance">0</span>
+            <span class="stat-label" data-i18n="stats.maintenance">Maint.</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Sidebar collapse button (when collapsed) -->
+      <button id="btn-expand-sidebar" class="btn-expand-sidebar hidden">
+        <span class="material-icons-round">chevron_right</span>
+      </button>
+
+      <!-- MAP AREA -->
+      <div id="map-container" class="map-container">
+        <div id="map" class="map"></div>
+
+        <!-- Map overlay controls -->
+        <div class="map-controls">
+          <!-- Search box (always visible) -->
+          <div id="map-search-box" class="map-search-box">
+            <span class="material-icons-round">search</span>
+            <input id="map-search-input" type="text" placeholder="Caută adresă sau locație...">
+            <div id="map-search-results" class="map-search-results hidden"></div>
+          </div>
+
+          <!-- Coordinate input (admin mode only) -->
+          <div id="coord-input" class="coord-input hidden">
+            <input id="coord-lat" type="number" step="any" placeholder="Latitude">
+            <input id="coord-lng" type="number" step="any" placeholder="Longitude">
+            <button id="btn-goto-coords" class="btn-sm btn-accent" title="Go to coordinates">
+              <span class="material-icons-round">my_location</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- No project selected overlay -->
+        <div id="map-overlay-no-project" class="map-overlay">
+          <div class="map-overlay-content animate-in">
+            <span class="material-icons-round" style="font-size:64px;opacity:0.3">folder_open</span>
+            <h2 data-i18n="map.selectProjectFirst">Select a project to begin</h2>
+            <p data-i18n="map.selectProjectHint">Choose or create a project from the header</p>
+          </div>
+        <!-- Right-click context menu -->
+        <div id="map-context-menu" class="map-context-menu hidden">
+          <div class="ctx-header">
+            <span class="material-icons-round" style="font-size:16px">add_location</span>
+            <span data-i18n="view.addMarkerHere">Add marker here</span>
+          </div>
+          <div class="ctx-icon-grid"></div>
+        </div>
+
+        <!-- Marker click popup (admin mode) -->
+        <div id="marker-popup" class="marker-popup hidden">
+          <div class="popup-header">
+            <div class="popup-icon"></div>
+            <div>
+              <div class="popup-title"></div>
+              <div class="popup-meta">
+                <span class="popup-status"></span>
+                <span class="popup-coords"></span>
+              </div>
+            </div>
+          </div>
+          <div class="popup-obs"></div>
+          <div class="popup-actions">
+            <button class="popup-btn popup-btn-edit"><span class="material-icons-round">edit</span> <span data-i18n="markerActions.edit">Edit</span></button>
+            <button class="popup-btn popup-btn-move"><span class="material-icons-round">open_with</span> <span data-i18n="markerActions.move">Move</span></button>
+            <button class="popup-btn popup-btn-delete danger"><span class="material-icons-round">delete</span> <span data-i18n="markerActions.delete">Delete</span></button>
+          </div>
+        </div>
+
+        <!-- Move marker bar -->
+        <div id="move-bar" class="move-bar hidden">
+          <span class="material-icons-round" style="color:var(--accent)">open_with</span>
+          <span data-i18n="markerActions.dragToMove">Drag marker to desired position</span>
+          <span class="move-bar-coords" style="font-family:var(--font-mono);font-size:12px;color:var(--text-tertiary)"></span>
+          <div class="move-bar-buttons">
+            <button class="btn btn-sm btn-accent move-btn-save"><span class="material-icons-round" style="font-size:16px">check</span> Salvează</button>
+            <button class="btn btn-sm btn-secondary move-btn-cancel"><span class="material-icons-round" style="font-size:16px">close</span> Anulează</button>
+          </div>
+        </div>
+
+        </div>
+      </div>
+
+      <!-- ADS SIDEBAR (right of map, hidden for ad-free/admin) -->
+      <aside id="ads-sidebar" class="ads-sidebar hidden">
+        <div id="promo-video-area" class="promo-video-area hidden">
+          <p style="font-size:11px;color:var(--text-tertiary);margin-bottom:6px">Urmărește și abonează-te</p>
+          <a id="promo-video-link" href="#" target="_blank" class="promo-video-link">
+            <span class="material-icons-round">play_circle</span> Video
+          </a>
+        </div>
+        <div id="ad-slot-sidebar" class="ad-slot">
+          <ins class="adsbygoogle" style="display:block" data-ad-format="auto" data-full-width-responsive="true"></ins>
+        </div>
+      </aside>
+    </main>
+
+    <!-- AD SPLASH SCREEN -->
+    <div id="ad-splash" class="ad-splash hidden">
+      <div class="ad-splash-content">
+        <div class="ad-splash-header">
+          <span class="material-icons-round">info</span>
+          <span>Interacționează cu DSIP pentru a rula aplicația fără reclame</span>
+          <span id="ad-splash-timer" class="ad-splash-timer">10s</span>
+        </div>
+        <div id="ad-slot-splash" class="ad-slot-splash">
+          <ins class="adsbygoogle" style="display:block" data-ad-format="auto"></ins>
+        </div>
+        <button id="btn-close-splash" class="btn btn-accent" disabled>Continuă (<span id="splash-countdown">10</span>s)</button>
+      </div>
+    </div>
+
+    <!-- ==================== ADMIN PANEL MODAL ==================== -->
+    <div id="modal-admin" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content animate-in" style="width:800px;max-width:95vw">
+        <div class="modal-header">
+          <h2><span class="material-icons-round" style="color:var(--warning);vertical-align:middle">admin_panel_settings</span> Admin Panel</h2>
+          <button class="btn-icon modal-close" data-close-modal="modal-admin"><span class="material-icons-round">close</span></button>
+        </div>
+        <div class="modal-body" style="padding:0">
+          <!-- Admin tabs -->
+          <div class="admin-tabs">
+            <button class="admin-tab active" data-tab="users"><span class="material-icons-round">people</span> Utilizatori</button>
+            <button class="admin-tab" data-tab="messages"><span class="material-icons-round">mail</span> Mesaje <span id="msg-badge" class="badge hidden">0</span></button>
+            <button class="admin-tab" data-tab="settings"><span class="material-icons-round">settings</span> Setări</button>
+          </div>
+
+          <!-- Users tab -->
+          <div id="admin-tab-users" class="admin-tab-content active" style="padding:16px">
+            <div id="admin-users-list"></div>
+          </div>
+
+          <!-- Messages tab -->
+          <div id="admin-tab-messages" class="admin-tab-content" style="padding:16px">
+            <div style="margin-bottom:12px">
+              <label class="filter-select" style="font-size:12px">
+                <select id="msg-filter">
+                  <option value="0">Neconfirmate</option>
+                  <option value="1">Confirmate</option>
+                  <option value="">Toate</option>
+                </select>
+              </label>
+            </div>
+            <div id="admin-messages-list"></div>
+          </div>
+
+          <!-- Settings tab (super admin only) -->
+          <div id="admin-tab-settings" class="admin-tab-content" style="padding:16px">
+            <div class="form-grid">
+              <div class="form-group col-span-2">
+                <label>Limită API zilnică per user (super admin nu e limitat)</label>
+                <input id="set-api-limit" type="number" class="form-input" min="1" value="10">
+              </div>
+              <div class="form-group">
+                <label>Ad Splash Interval (minute)</label>
+                <input id="set-ad-interval" type="number" class="form-input" min="1">
+              </div>
+              <div class="form-group">
+                <label>Ad Splash Durată (secunde)</label>
+                <input id="set-ad-duration" type="number" class="form-input" min="5">
+              </div>
+              <div class="form-group col-span-2">
+                <label>URL Video Promo</label>
+                <input id="set-video-url" type="url" class="form-input" placeholder="https://youtube.com/...">
+              </div>
+            </div>
+            <p style="margin-top:12px;font-size:12px;color:var(--text-tertiary)">AdSense (client/slots) se configurează din fișierul .env de pe server.</p>
+            <button id="btn-save-settings" class="btn btn-accent" style="margin-top:12px">
+              <span class="material-icons-round">save</span> Salvează Setări
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MANAGE MARKER TYPES MODAL ==================== -->
+    <div id="modal-marker-types" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content modal-medium animate-in">
+        <div class="modal-header">
+          <h2>Administrare Tipuri Markere</h2>
+          <button class="btn-icon modal-close" data-close-modal="modal-marker-types">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <!-- Create new type -->
+          <div class="new-type-form">
+            <div class="form-group">
+              <label>Nume tip</label>
+              <input id="new-type-name" type="text" class="form-input" placeholder="Ex: Tulumbă, Pompă Mobilă...">
+            </div>
+            <div class="form-group">
+              <label>SVG Iconiță</label>
+              <textarea id="new-type-svg" class="form-input" rows="3" placeholder='<svg viewBox="0 0 64 64">...</svg>'></textarea>
+              <div class="preset-svgs">
+                <small style="color:var(--text-tertiary)">Sau alege un preset:</small>
+                <div id="preset-svg-grid" class="preset-svg-grid"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Disponibil în</label>
+              <select id="new-type-scope" class="form-input">
+                <option value="all">Toate proiectele</option>
+                <option value="project">Doar proiectul curent</option>
+              </select>
+            </div>
+            <button class="btn btn-accent" onclick="MarkerTypes.createType()" style="margin-top:8px">
+              <span class="material-icons-round">add</span> Creează Tip
+            </button>
+          </div>
+
+          <div style="margin-top:20px" id="manage-types-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MARKER EDIT MODAL ==================== -->
+    <div id="modal-marker" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content modal-large animate-in">
+        <div class="modal-header">
+          <h2 id="modal-marker-title" data-i18n="marker.add">Add Marker</h2>
+          <button class="btn-icon modal-close" data-close-modal="modal-marker">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group col-span-2">
+              <label data-i18n="marker.title">Title</label>
+              <input id="marker-title" type="text" class="form-input">
+            </div>
+
+            <div class="form-group">
+              <label data-i18n="marker.lat">Latitude</label>
+              <input id="marker-lat" type="number" step="any" class="form-input">
+            </div>
+            <div class="form-group">
+              <label data-i18n="marker.lng">Longitude</label>
+              <input id="marker-lng" type="number" step="any" class="form-input">
+            </div>
+
+            <div class="form-group col-span-2">
+              <label data-i18n="marker.icon">Icon</label>
+              <div id="marker-icon-picker" class="icon-picker"></div>
+            </div>
+
+            <div class="form-group col-span-2">
+              <label data-i18n="marker.observations">Observations</label>
+              <textarea id="marker-observations" class="form-input" rows="3"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label data-i18n="marker.status">Status</label>
+              <select id="marker-status" class="form-input">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="maintenance">Maintenance</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label data-i18n="marker.condition">Condition</label>
+              <select id="marker-condition" class="form-input">
+                <option value="good">Good</option>
+                <option value="fair">Fair</option>
+                <option value="poor">Poor</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label data-i18n="marker.priority">Priority</label>
+              <select id="marker-priority" class="form-input">
+                <option value="low">Low</option>
+                <option value="normal">Normal</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label data-i18n="marker.responsible">Responsible</label>
+              <input id="marker-responsible" type="text" class="form-input">
+            </div>
+
+            <div class="form-group">
+              <label data-i18n="marker.cost">Cost</label>
+              <div class="input-with-suffix">
+                <input id="marker-cost" type="number" step="0.01" class="form-input">
+                <select id="marker-currency" class="form-suffix">
+                  <option value="EUR">EUR</option>
+                  <option value="RON">RON</option>
+                  <option value="USD">USD</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label data-i18n="marker.installDate">Installation Date</label>
+              <input id="marker-install-date" type="date" class="form-input">
+            </div>
+            <div class="form-group">
+              <label data-i18n="marker.maintenanceDate">Maintenance Date</label>
+              <input id="marker-maintenance-date" type="date" class="form-input">
+            </div>
+            <div class="form-group">
+              <label data-i18n="marker.repairDate">Repair Date</label>
+              <input id="marker-repair-date" type="date" class="form-input">
+            </div>
+            <div class="form-group">
+              <label data-i18n="marker.warrantyDate">Warranty Expiry</label>
+              <input id="marker-warranty-date" type="date" class="form-input">
+            </div>
+
+            <div class="form-group col-span-2">
+              <label data-i18n="marker.images">Images</label>
+              <div id="marker-images-area" class="images-area">
+                <div id="marker-images-preview" class="images-preview"></div>
+                <label class="upload-btn">
+                  <span class="material-icons-round">add_photo_alternate</span>
+                  <span data-i18n="marker.uploadImage">Upload</span>
+                  <input id="marker-image-upload" type="file" accept="image/*" hidden>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-close-modal="modal-marker" data-i18n="common.cancel">Cancel</button>
+          <button id="btn-save-marker" class="btn btn-accent" data-i18n="common.save">Save</button>
+          <button id="btn-delete-marker" class="btn btn-danger hidden" data-i18n="common.delete">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PROJECT MANAGEMENT MODAL ==================== -->
+    <div id="modal-projects" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content modal-medium animate-in">
+        <div class="modal-header">
+          <h2 data-i18n="projects.manage">Manage Projects</h2>
+          <button class="btn-icon modal-close" data-close-modal="modal-projects">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <!-- New project form -->
+          <div class="new-project-form">
+            <input id="new-project-name" type="text" class="form-input" data-i18n-placeholder="projects.newName" placeholder="New project name...">
+            <button id="btn-create-project" class="btn btn-accent">
+              <span class="material-icons-round">add</span>
+              <span data-i18n="projects.create">Create</span>
+            </button>
+          </div>
+
+          <!-- Avatar picker -->
+          <div id="avatar-picker-section" class="avatar-picker-section hidden">
+            <label data-i18n="projects.chooseAvatar">Choose avatar:</label>
+            <div id="avatar-picker" class="avatar-picker"></div>
+          </div>
+
+          <!-- Project list -->
+          <div id="manage-project-list" class="manage-project-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <!-- ==================== USAGE DETAILS MODAL ==================== -->
+  <div id="modal-usage" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content modal-medium animate-in">
+      <div class="modal-header">
+        <h2>📊 Consum API Google Maps</h2>
+        <button class="btn-icon modal-close" data-close-modal="modal-usage">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+      <div class="modal-body" id="usage-modal-body">
+        <p>Se încarcă...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="/js/i18n.js?v=2"></script>
+  <script src="/js/icons.js?v=2"></script>
+  <script src="/js/theme.js?v=2"></script>
+  <script src="/js/app.js?v=2"></script>
+  <script src="/js/projects.js?v=2"></script>
+  <script src="/js/map.js?v=2"></script>
+  <script src="/js/markers.js?v=2"></script>
+  <script src="/js/markerTypes.js?v=2"></script>
+  <script src="/js/admin.js?v=2"></script>
+</body>
+</html>
