@@ -636,9 +636,14 @@
       <aside id="sidebar" class="sidebar">
         <div class="sidebar-header">
           <h3 id="sidebar-title" data-i18n="sidebar.markers">Markers</h3>
-          <button id="btn-toggle-sidebar" class="btn-icon" title="Toggle sidebar">
-            <span class="material-icons-round">chevron_left</span>
-          </button>
+          <div style="display:flex;gap:4px;align-items:center">
+            <button id="btn-export-pdf" class="btn-icon" title="Export PDF" style="color:var(--accent)">
+              <span class="material-icons-round" style="font-size:20px">picture_as_pdf</span>
+            </button>
+            <button id="btn-toggle-sidebar" class="btn-icon" title="Toggle sidebar">
+              <span class="material-icons-round">chevron_left</span>
+            </button>
+          </div>
         </div>
 
         <!-- Search in sidebar -->
@@ -780,7 +785,7 @@
       <!-- ADS SIDEBAR (right of map, hidden for ad-free/admin) -->
       <aside id="ads-sidebar" class="ads-sidebar hidden">
         <div id="promo-video-area" class="promo-video-area hidden">
-          <p style="font-size:11px;color:var(--text-tertiary);margin-bottom:6px">Urmărește și abonează-te</p>
+          <p style="font-size:11px;color:var(--text-tertiary);margin-bottom:6px" data-i18n="ads.watchSubscribe">Watch and subscribe</p>
           <a id="promo-video-link" href="#" target="_blank" class="promo-video-link">
             <span class="material-icons-round">play_circle</span> Video
           </a>
@@ -796,13 +801,13 @@
       <div class="ad-splash-content">
         <div class="ad-splash-header">
           <span class="material-icons-round">info</span>
-          <span>Interacționează cu DSIP pentru a rula aplicația fără reclame</span>
+          <span data-i18n="ads.splashMsg">Interact with DSIP to use the app ad-free</span>
           <span id="ad-splash-timer" class="ad-splash-timer">10s</span>
         </div>
         <div id="ad-slot-splash" class="ad-slot-splash">
           <ins class="adsbygoogle" style="display:block" data-ad-format="auto"></ins>
         </div>
-        <button id="btn-close-splash" class="btn btn-accent" disabled>Continuă (<span id="splash-countdown">10</span>s)</button>
+        <button id="btn-close-splash" class="btn btn-accent" disabled><span data-i18n="ads.continue">Continue</span> (<span id="splash-countdown">10</span>s)</button>
       </div>
     </div>
 
@@ -1098,14 +1103,16 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="/js/i18n.js?v=2"></script>
-  <script src="/js/icons.js?v=2"></script>
-  <script src="/js/theme.js?v=2"></script>
-  <script src="/js/app.js?v=2"></script>
-  <script src="/js/projects.js?v=2"></script>
-  <script src="/js/map.js?v=2"></script>
-  <script src="/js/markers.js?v=2"></script>
-  <script src="/js/markerTypes.js?v=2"></script>
-  <script src="/js/admin.js?v=2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
+  <script src="/js/i18n.js?v=3"></script>
+  <script src="/js/icons.js?v=3"></script>
+  <script src="/js/theme.js?v=3"></script>
+  <script src="/js/app.js?v=3"></script>
+  <script src="/js/projects.js?v=3"></script>
+  <script src="/js/map.js?v=3"></script>
+  <script src="/js/markers.js?v=3"></script>
+  <script src="/js/markerTypes.js?v=3"></script>
+  <script src="/js/admin.js?v=3"></script>
 </body>
 </html>

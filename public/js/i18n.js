@@ -166,6 +166,24 @@ window.I18n = {
         message: 'Message',
         logout: 'Logout'
       },
+      ads: {
+        watchSubscribe: 'Watch and subscribe',
+        splashMsg: 'Interact with DSIP to use the app ad-free',
+        continue: 'Continue'
+      },
+      pdf: {
+        export: 'Export PDF',
+        title: 'Marker Report',
+        project: 'Project',
+        generated: 'Generated',
+        filters: 'Applied Filters',
+        status: 'Status',
+        condition: 'Condition',
+        search: 'Search',
+        all: 'All',
+        markerList: 'Marker List',
+        noMarkers: 'No markers match the current filters'
+      },
       toast: {
         projectCreated: 'Project created!',
         projectDeleted: 'Project deleted',
@@ -339,6 +357,24 @@ window.I18n = {
         message: 'Mesaj',
         logout: 'Deconectare'
       },
+      ads: {
+        watchSubscribe: 'Urmărește și abonează-te',
+        splashMsg: 'Interacționează cu DSIP pentru a rula aplicația fără reclame',
+        continue: 'Continuă'
+      },
+      pdf: {
+        export: 'Export PDF',
+        title: 'Raport Markere',
+        project: 'Proiect',
+        generated: 'Generat',
+        filters: 'Filtre Aplicate',
+        status: 'Stare',
+        condition: 'Condiție',
+        search: 'Căutare',
+        all: 'Toate',
+        markerList: 'Lista Markere',
+        noMarkers: 'Niciun marker nu corespunde filtrelor'
+      },
       toast: {
         projectCreated: 'Proiect creat!',
         projectDeleted: 'Proiect șters',
@@ -435,6 +471,8 @@ window.I18n = {
       common: {
         cancel: 'Abbrechen', save: 'Speichern', delete: 'Löschen', confirm: 'Bestätigen', loading: 'Laden...', success: 'Erfolg', error: 'Fehler', name: 'Name', message: 'Nachricht', logout: 'Abmelden'
       },
+      ads: { watchSubscribe: 'Ansehen und abonnieren', splashMsg: 'Interagieren Sie mit DSIP, um die App werbefrei zu nutzen', continue: 'Weiter' },
+      pdf: { export: 'PDF exportieren', title: 'Marker-Bericht', project: 'Projekt', generated: 'Erstellt', filters: 'Angewandte Filter', status: 'Status', condition: 'Zustand', search: 'Suche', all: 'Alle', markerList: 'Markerliste', noMarkers: 'Keine Marker entsprechen den Filtern' },
       toast: {
         projectCreated: 'Projekt erstellt!', projectDeleted: 'Projekt gelöscht', markerSaved: 'Marker gespeichert!', markerDeleted: 'Marker gelöscht', settingsSaved: 'Einstellungen gespeichert', errorGeneric: 'Etwas ist schiefgelaufen', locationNotFound: 'Ort nicht gefunden: "{query}"', mapNotReady: 'Karte noch nicht geladen.'
       }
@@ -524,6 +562,8 @@ window.I18n = {
       common: {
         cancel: 'Annuler', save: 'Enregistrer', delete: 'Supprimer', confirm: 'Confirmer', loading: 'Chargement...', success: 'Succès', error: 'Erreur', name: 'Nom', message: 'Message', logout: 'Déconnexion'
       },
+      ads: { watchSubscribe: 'Regardez et abonnez-vous', splashMsg: 'Interagissez avec DSIP pour utiliser l\'appli sans publicité', continue: 'Continuer' },
+      pdf: { export: 'Exporter PDF', title: 'Rapport Marqueurs', project: 'Projet', generated: 'Généré', filters: 'Filtres Appliqués', status: 'Statut', condition: 'Condition', search: 'Recherche', all: 'Tous', markerList: 'Liste des Marqueurs', noMarkers: 'Aucun marqueur ne correspond aux filtres' },
       toast: {
         projectCreated: 'Projet créé!', projectDeleted: 'Projet supprimé', markerSaved: 'Marqueur enregistré!', markerDeleted: 'Marqueur supprimé', settingsSaved: 'Paramètres enregistrés', errorGeneric: 'Quelque chose s\'est mal passé', locationNotFound: 'Lieu non trouvé: "{query}"', mapNotReady: 'Carte pas encore chargée.'
       }

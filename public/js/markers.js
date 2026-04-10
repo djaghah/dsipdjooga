@@ -466,5 +466,137 @@ window.Markers = {
     const div = document.createElement('div');
     div.textContent = str || '';
     return div.innerHTML;
+  },
+
+  // --- PDF Export ---
+  exportPDF() {
+    if (!App.currentProject) {
+      App.toast(I18n.t('map.selectProjectFirst'), 'warning');
+      return;
+    }
+
+    const markers = this.filteredList;
+    const project = App.currentProject;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 14;
+
+    // Colors
+    const accent = [79, 110, 247];
+    const dark = [30, 33, 48];
+    const gray = [120, 125, 145];
+    const lightBg = [245, 246, 250];
+
+    // --- Header band ---
+    doc.setFillColor(...accent);
+    doc.rect(0, 0, pageW, 28, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(project.name, margin, 12);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('DSIP MapManager — ' + I18n.t('pdf.title'), margin, 19);
+    doc.text(I18n.t('pdf.generated') + ': ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(), pageW - margin, 12, { align: 'right' });
+    doc.text(markers.length + ' markers', pageW - margin, 19, { align: 'right' });
+
+    // --- Applied filters ---
+    let y = 34;
+    const statusFilter = document.getElementById('filter-status')?.value || '';
+    const condFilter = document.getElementById('filter-condition')?.value || '';
+    const searchFilter = document.getElementById('sidebar-search-input')?.value || '';
+
+    if (statusFilter || condFilter || searchFilter) {
+      doc.setFontSize(9);
+      doc.setTextColor(...gray);
+      let filterText = I18n.t('pdf.filters') + ': ';
+      if (statusFilter) filterText += I18n.t('pdf.status') + '=' + statusFilter + '  ';
+      if (condFilter) filterText += I18n.t('pdf.condition') + '=' + condFilter + '  ';
+      if (searchFilter) filterText += I18n.t('pdf.search') + '="' + searchFilter + '"';
+      doc.text(filterText, margin, y);
+      y += 6;
+    }
+
+    // --- Table ---
+    if (markers.length === 0) {
+      doc.setFontSize(12);
+      doc.setTextColor(...gray);
+      doc.text(I18n.t('pdf.noMarkers'), pageW / 2, 60, { align: 'center' });
+    } else {
+      const statusLabels = { active: I18n.t('filter.active'), inactive: I18n.t('filter.inactive'), maintenance: I18n.t('filter.maintenance') };
+      const condLabels = { good: I18n.t('filter.good'), fair: I18n.t('filter.fair'), poor: I18n.t('filter.poor'), critical: I18n.t('filter.critical') };
+
+      const headers = [
+        '#',
+        I18n.t('marker.title'),
+        I18n.t('marker.status'),
+        I18n.t('marker.condition'),
+        I18n.t('marker.responsible'),
+        I18n.t('marker.cost'),
+        I18n.t('marker.installDate'),
+        I18n.t('marker.maintenanceDate'),
+        I18n.t('marker.warrantyDate'),
+        'Lat, Lng'
+      ];
+
+      const rows = markers.map((m, i) => [
+        i + 1,
+        m.title || Icons.getIconName(m.icon_type, m.icon_index) || '-',
+        statusLabels[m.status] || m.status || '-',
+        condLabels[m.condition] || m.condition || '-',
+        m.responsible || '-',
+        m.cost ? `${m.cost} ${m.currency || 'EUR'}` : '-',
+        m.installation_date || '-',
+        m.maintenance_date || '-',
+        m.warranty_date || '-',
+        `${m.lat.toFixed(5)}, ${m.lng.toFixed(5)}`
+      ]);
+
+      doc.autoTable({
+        startY: y,
+        head: [headers],
+        body: rows,
+        margin: { left: margin, right: margin },
+        styles: {
+          fontSize: 8,
+          cellPadding: 2.5,
+          lineColor: [220, 222, 230],
+          lineWidth: 0.3,
+          textColor: dark
+        },
+        headStyles: {
+          fillColor: accent,
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8
+        },
+        alternateRowStyles: {
+          fillColor: lightBg
+        },
+        columnStyles: {
+          0: { cellWidth: 8, halign: 'center' },
+          1: { cellWidth: 42 },
+          5: { halign: 'right', cellWidth: 22 },
+          9: { fontSize: 7, cellWidth: 32 }
+        },
+        didDrawPage: (data) => {
+          // Footer on each page
+          doc.setFontSize(7);
+          doc.setTextColor(...gray);
+          doc.text(
+            `DSIP MapManager — ${project.name} — Page ${doc.internal.getCurrentPageInfo().pageNumber}`,
+            pageW / 2, pageH - 6, { align: 'center' }
+          );
+        }
+      });
+    }
+
+    // Save
+    const safeName = project.name.replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '_');
+    doc.save(`${safeName}_markers_${new Date().toISOString().slice(0, 10)}.pdf`);
+    App.toast(I18n.t('pdf.export') + ' OK', 'success');
   }
 };

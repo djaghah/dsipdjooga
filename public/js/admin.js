@@ -177,6 +177,11 @@ window.AdminPanel = {
     const btn = document.getElementById('btn-close-splash');
     const countdown = document.getElementById('splash-countdown');
     btn.disabled = true;
+    countdown.textContent = remaining;
+
+    // Reset button text
+    const btnLabel = btn.querySelector('[data-i18n]');
+    if (btnLabel) btnLabel.textContent = I18n.t('ads.continue');
 
     // Configure splash ad
     const client = this.settings.google_ads_client;
@@ -191,21 +196,29 @@ window.AdminPanel = {
       }
     }
 
-    const tick = setInterval(() => {
+    // Clear any previous timer
+    if (this._splashTick) clearInterval(this._splashTick);
+
+    this._splashTick = setInterval(() => {
       remaining--;
       countdown.textContent = remaining;
       if (remaining <= 0) {
-        clearInterval(tick);
+        clearInterval(this._splashTick);
+        this._splashTick = null;
         btn.disabled = false;
-        btn.textContent = 'Continuă';
       }
     }, 1000);
 
-    btn.onclick = () => {
+    // Close handler (remove old, add new to avoid stacking)
+    const closeHandler = () => {
       splash.classList.add('hidden');
-      clearInterval(tick);
+      if (this._splashTick) { clearInterval(this._splashTick); this._splashTick = null; }
+      btn.removeEventListener('click', closeHandler);
       this.startSplashTimer(); // restart timer for next splash
     };
+    btn.removeEventListener('click', this._splashCloseHandler);
+    this._splashCloseHandler = closeHandler;
+    btn.addEventListener('click', closeHandler);
   },
 
   // ============ ADMIN PANEL ============

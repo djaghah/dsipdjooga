@@ -2034,6 +2034,8 @@ textarea.form-input { resize: vertical; }
    SEO LANDING PAGE
    ============================ */
 #view-login {
+  height: auto;
+  min-height: 100vh;
   overflow-y: auto;
   flex-direction: column;
 }

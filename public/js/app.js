@@ -145,6 +145,9 @@ window.App = {
     document.getElementById('filter-status').addEventListener('change', () => Markers.applyAllFilters());
     document.getElementById('filter-condition').addEventListener('change', () => Markers.applyAllFilters());
 
+    // PDF Export
+    document.getElementById('btn-export-pdf').addEventListener('click', () => Markers.exportPDF());
+
     // View toggle: All / In View
     const btnAll = document.getElementById('btn-view-all');
     const btnInView = document.getElementById('btn-view-inview');
