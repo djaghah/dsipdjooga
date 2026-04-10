@@ -12,24 +12,26 @@ Node.js client-server application for geographic project management with Google 
 
 ## Key Files
 - `server.js` — Express app entry, middleware, routes, session config (no-cache in dev)
-- `server/db.js` — SQLite schema, query helpers, seed data (100 hydrants + 300 signs in Sibiu)
+- `server/db.js` — SQLite schema, query helpers, seed data (100 hydrants + 300 signs in Sibiu), DB_VERSION constant (bump on schema changes)
 - `server/auth.js` — Passport Google OAuth + auto-admin for bogdansarac@gmail.com + whitelist check
 - `server/routes/auth.js` — Login/logout/user preferences (prompt: select_account for multi-account)
 - `server/routes/projects.js` — Project CRUD + project members (invite/role/remove)
 - `server/routes/markers.js` — Marker CRUD with project-level access control (admin=edit, viewer=read)
 - `server/routes/uploads.js` — Image upload with multer
-- `server/routes/admin.js` — Super admin panel: users, whitelist, contact requests, app settings
+- `server/routes/admin.js` — Super admin panel: users, whitelist, contact requests, app settings, DB version check + reset
 - `server/routes/markerTypes.js` — Custom marker type CRUD
 - `public/index.html` — SPA HTML (login, unauthorized, expired, dashboard, admin panel, ads)
 - `public/css/style.css` — Full CSS with dark/light theme via CSS vars
 - `public/js/app.js` — Main controller, project role enforcement (admin vs viewer UI)
 - `public/js/map.js` — Google Maps: search (Geocoding API), SVG→PNG marker rendering, right-click context menu, move mode, POI toggle, rate limit check before API calls
-- `public/js/markers.js` — Sidebar list (all/in-view toggle, scrollable), create/edit modal, icon picker with tabs
+- `public/js/markers.js` — Sidebar list (all/in-view toggle, scrollable), create/edit modal, icon picker with tabs, PDF export
+- `public/robots.txt` — SEO: crawler directives (allow /, block /api/ /auth/ /uploads/)
+- `public/sitemap.xml` — SEO: sitemap with hreflang alternates (en/ro/de/fr)
 - `public/js/projects.js` — Project management modal with members panel (invite by email, role change)
 - `public/js/icons.js` — SVGs: 10 avatars, 55 road signs, 24 firefighter icons, 5 default markers
 - `public/js/i18n.js` — Translations: EN, RO, DE, FR (all keys in all languages)
 - `public/js/theme.js` — Dark/light mode
-- `public/js/admin.js` — Super admin panel, ads system, access control, admin/user role toggle
+- `public/js/admin.js` — Super admin panel, ads system (AdSense + video splash), access control, admin/user role toggle, DB reset
 - `public/js/markerTypes.js` — Custom marker type management
 - `Dockerfile` — Node 20 Alpine, non-root user, dumb-init, health check
 - `docker-compose.yml` — Hardened: read-only fs, no-new-privileges, cap_drop ALL, memory/cpu limits
@@ -48,7 +50,7 @@ Node.js client-server application for geographic project management with Google 
 - `geocache` — Server-side geocoding result cache
 - `whitelist` — Allowed email addresses (removed after user creates account)
 - `contact_requests` — Access/renewal requests from unauthorized/expired users (acknowledged flag)
-- `app_settings` — Key-value admin settings (api_daily_limit_per_user, ad timers, video URL)
+- `app_settings` — Key-value admin settings (api_daily_limit_per_user, api_total_limit_per_user, ad timers, promo_video_url, db_version)
 
 ## User Roles & Access
 - **Super Admin**: bogdansarac@gmail.com — auto-assigned on first login, always admin, bypasses whitelist and rate limits, only one who sees Admin Panel button
@@ -66,13 +68,15 @@ Node.js client-server application for geographic project management with Google 
 6. Super admin (bogdansarac@gmail.com) always passes all checks
 
 ## API Rate Limiting
+- Dual limit system: daily limit (default 10/day) + total all-time limit (default 50 total) per user
 - Rate limit checked BEFORE loading Google Maps and BEFORE each geocode request
-- If limit exceeded → map doesn't load (shows "quota exhausted"), search blocked with toast
-- Default: 10 API calls per user per day (configurable by super admin in Admin Panel > Settings)
-- Super admin bypasses rate limit
-- Tracks: maps_load, geocode per user per day
-- Cost display in header bar (click to see detailed breakdown per user): $7/1000 maps_load, $5/1000 geocode
-- $200/month Google free credit
+- If limit exceeded → map doesn't load (shows "quota exhausted" with specific message for daily vs total), search blocked with toast
+- Both limits configurable by super admin in Admin Panel > Settings
+- Super admin bypasses ALL rate limits (daily + total)
+- Tracks: maps_load, geocode per user per day in `api_usage` table (count = count + 1)
+- Super admin header shows: total platform calls + cost (`142 total | $0.99/$200`)
+- Usage modal shows per-user progress bars with total/limit for admin
+- Cost display: $7/1000 maps_load, $5/1000 geocode, $200/month Google free credit
 
 ## Marker Icon Rendering
 - SVG icons are converted to PNG via Canvas at runtime (SVG → Blob → Image → Canvas → PNG data URL)
@@ -85,9 +89,39 @@ Node.js client-server application for geographic project management with Google 
 - Sidebar slot: `1236361551`, Splash slot: `9820382402`
 - All AdSense config in `.env` file only (not in admin panel)
 - Ads shown only to non-ad-free users. Super admin with ADMIN toggle = no ads. With USER toggle = sees ads.
-- Splash screen: every N minutes (default 5), countdown of M seconds (default 10). Configurable from Admin Panel > Settings.
+- **Splash screen**: every N minutes (default 5), countdown of M seconds (default 10). Configurable from Admin Panel > Settings.
+  - If `promo_video_url` is set → plays video (YouTube/MP4) in splash instead of AdSense ad
+  - YouTube URLs auto-parsed to embed (supports watch, youtu.be, shorts formats)
+  - Video autoplays muted (browser requirement), loops, no controls, 16:9 aspect ratio
+  - If no video URL → falls back to AdSense ad slot
+  - Video stops and cleans up on popup close
 - Map auto-resizes when ads sidebar appears/disappears (ResizeObserver)
 - **AdSense verification**: `djooga.com` has verification snippet at `/var/www/djooga.com/index.html`
+
+## PDF Export
+- Button in sidebar header (PDF icon next to Markers title)
+- Generates landscape A4 PDF using jsPDF + autoTable plugin (CDN loaded)
+- Content: project name header, applied filters, full marker table (title, status, condition, responsible, cost, dates, coordinates)
+- Respects current sidebar filters (status, condition, search text)
+- File name: `ProjectName_markers_YYYY-MM-DD.pdf`
+- All labels use i18n translations
+
+## Database Versioning
+- `DB_VERSION` constant in `server/db.js` — increment when schema changes
+- Stored in `app_settings` key `db_version` on every server start
+- Admin Panel > Settings shows version match/mismatch with warning when outdated
+- "Resetare Baza de Date" button: super admin only, double-confirm, deletes `data/dsip.db`, creates fresh schema + seed
+- Endpoints: `GET /api/admin/db-version`, `POST /api/admin/db-reset`
+
+## SEO
+- `public/robots.txt` — allows /, disallows /api/, /auth/, /uploads/, /data/
+- `public/sitemap.xml` — with hreflang alternates (en, ro, de, fr)
+- 5 JSON-LD schemas in `<head>`: WebApplication, Organization, FAQPage, BreadcrumbList
+- Extended meta tags: 50+ keywords, hreflang, Open Graph with locales, Twitter card
+- Full landing page below login hero (visible to Google crawlers):
+  - Feature grid (9 cards), use cases (4 articles), how it works (4 steps), visible FAQ (6 items), SEO footer
+- Semantic HTML: header, main, section, article, footer, details
+- Google Search Console: domain property verified via DNS TXT record
 
 ## Seed Data
 - On DB creation, auto-creates: super admin user (bogdansarac@gmail.com), 2 projects with Sibiu center (45.7983, 24.1256, zoom 14):
