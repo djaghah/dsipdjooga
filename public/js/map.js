@@ -20,13 +20,25 @@ window.MapManager = {
     try { this.geoCache = JSON.parse(localStorage.getItem('dsip_geocache') || '{}'); } catch { this.geoCache = {}; }
 
     if (!App.config?.mapsApiKey) { console.warn('No Maps API key'); return; }
-    const usage = await this.checkUsage();
-    if (usage && usage.remaining <= 0) { this.showQuotaExhausted(); return; }
+
+    // Check user rate limit before loading maps
+    const allowed = await this.checkAndIncrement('maps_load');
+    if (!allowed) { this.showQuotaExhausted(); return; }
+
     await this.loadGoogleMaps();
   },
 
-  async checkUsage() {
-    try { const r = await fetch('/api/maps-usage'); return r.ok ? await r.json() : null; } catch { return null; }
+  // Try to increment usage — returns false if rate limited
+  async checkAndIncrement(type) {
+    try {
+      const r = await fetch('/api/usage/increment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type })
+      });
+      if (r.status === 429) return false;
+      return r.ok;
+    } catch { return true; }
   },
 
   loadGoogleMaps() {
@@ -45,7 +57,8 @@ window.MapManager = {
   },
 
   async onMapsLoaded() {
-    try { await fetch('/api/maps-usage/increment', { method: 'POST' }); App.updateMapsUsage(); } catch {}
+    // Usage already incremented in init() before loading maps
+    App.updateMapsUsage();
     this.mapLoaded = true;
 
     this.map = new google.maps.Map(document.getElementById('map'), {
@@ -154,13 +167,18 @@ window.MapManager = {
     });
   },
 
-  doGeocode(query, resultsEl, goToFirst = false) {
+  async doGeocode(query, resultsEl, goToFirst = false) {
     if (!this.geocoder) {
       App.toast(I18n.t('toast.mapNotReady'), 'warning');
       return;
     }
-    // Track geocoding API call
-    fetch('/api/usage/increment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'geocode' }) }).catch(() => {});
+    // Check rate limit before geocoding
+    const allowed = await this.checkAndIncrement('geocode');
+    if (!allowed) {
+      App.toast('Limita zilnică de căutări atinsă.', 'warning');
+      resultsEl.classList.add('hidden');
+      return;
+    }
     this.geocoder.geocode({ address: query }, (res, status) => {
       if (status === 'OK' && res.length > 0) {
         const items = res.slice(0, 5).map(r => ({
