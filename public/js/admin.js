@@ -167,6 +167,13 @@ window.AdminPanel = {
     if (this.adSplashTimer) { clearTimeout(this.adSplashTimer); this.adSplashTimer = null; }
   },
 
+  // Parse YouTube URL → embed ID
+  _getYouTubeId(url) {
+    if (!url) return null;
+    const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([a-zA-Z0-9_-]{11})/);
+    return m ? m[1] : null;
+  },
+
   showSplash() {
     if (this.isAdFree()) return;
     const splash = document.getElementById('ad-splash');
@@ -183,16 +190,42 @@ window.AdminPanel = {
     const btnLabel = btn.querySelector('[data-i18n]');
     if (btnLabel) btnLabel.textContent = I18n.t('ads.continue');
 
-    // Configure splash ad
-    const client = this.settings.google_ads_client;
-    const splashSlot = this.settings.google_ads_slot_splash;
-    if (client && splashSlot) {
-      const ins = document.querySelector('#ad-slot-splash .adsbygoogle');
-      if (ins && !ins.dataset.configured) {
-        ins.dataset.adClient = client;
-        ins.dataset.adSlot = splashSlot;
-        ins.dataset.configured = '1';
-        try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch {}
+    const videoContainer = document.getElementById('splash-video-container');
+    const adSlot = document.getElementById('ad-slot-splash');
+    const videoUrl = this.settings.promo_video_url;
+
+    // Show video or ad
+    if (videoUrl) {
+      adSlot.classList.add('hidden');
+      videoContainer.classList.remove('hidden');
+
+      const ytId = this._getYouTubeId(videoUrl);
+      if (ytId) {
+        // YouTube embed — autoplay, muted (required by browsers), no controls
+        videoContainer.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${ytId}" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+      } else if (videoUrl.match(/\.(mp4|webm|ogg)(\?|$)/i)) {
+        // Direct video file
+        videoContainer.innerHTML = `<video autoplay muted loop playsinline><source src="${videoUrl}"></video>`;
+      } else {
+        // Unknown format — try as iframe
+        videoContainer.innerHTML = `<iframe src="${videoUrl}" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+      }
+    } else {
+      videoContainer.classList.add('hidden');
+      videoContainer.innerHTML = '';
+      adSlot.classList.remove('hidden');
+
+      // Configure AdSense fallback
+      const client = this.settings.google_ads_client;
+      const splashSlot = this.settings.google_ads_slot_splash;
+      if (client && splashSlot) {
+        const ins = document.querySelector('#ad-slot-splash .adsbygoogle');
+        if (ins && !ins.dataset.configured) {
+          ins.dataset.adClient = client;
+          ins.dataset.adSlot = splashSlot;
+          ins.dataset.configured = '1';
+          try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch {}
+        }
       }
     }
 
@@ -213,6 +246,9 @@ window.AdminPanel = {
     const closeHandler = () => {
       splash.classList.add('hidden');
       if (this._splashTick) { clearInterval(this._splashTick); this._splashTick = null; }
+      // Stop video on close
+      videoContainer.innerHTML = '';
+      videoContainer.classList.add('hidden');
       btn.removeEventListener('click', closeHandler);
       this.startSplashTimer(); // restart timer for next splash
     };

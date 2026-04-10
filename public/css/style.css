@@ -1968,6 +1968,15 @@ textarea.form-input { resize: vertical; }
   color: var(--accent);
 }
 .ad-slot-splash { min-height: 200px; background: var(--bg-tertiary); border-radius: var(--radius-sm); margin-bottom: 16px; }
+.splash-video-container { margin-bottom: 16px; border-radius: var(--radius-md); overflow: hidden; background: #000; }
+.splash-video-container iframe,
+.splash-video-container video {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border: none;
+  display: block;
+  border-radius: var(--radius-md);
+}
 
 /* ============================
    ADMIN PANEL MODAL
