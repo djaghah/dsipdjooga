@@ -400,5 +400,40 @@ window.AdminPanel = {
       });
       App.toast('Setări salvate!', 'success');
     };
+
+    // DB version check
+    try {
+      const dbRes = await fetch('/api/admin/db-version');
+      if (dbRes.ok) {
+        const dbInfo = await dbRes.json();
+        const infoEl = document.getElementById('db-version-info');
+        if (dbInfo.needsReset) {
+          infoEl.innerHTML = `<span style="color:var(--danger);font-weight:600">⚠ Versiune DB: ${dbInfo.dbVersion} → Cod: ${dbInfo.codeVersion} — RESET NECESAR</span>`;
+        } else {
+          infoEl.textContent = `Versiune DB: ${dbInfo.dbVersion} (la zi cu codul v${dbInfo.codeVersion})`;
+        }
+      }
+    } catch {}
+
+    // Reset DB button
+    document.getElementById('btn-reset-db').onclick = async () => {
+      const confirmed = confirm('ATENȚIE!\n\nAceastă acțiune va ȘTERGE toată baza de date curentă (utilizatori, proiecte, markeri, setări) și va recrea una nouă cu seed-ul implicit.\n\nEști sigur?');
+      if (!confirmed) return;
+      const confirmed2 = confirm('Ultima confirmare: chiar vrei să resetezi baza de date?');
+      if (!confirmed2) return;
+
+      try {
+        const r = await fetch('/api/admin/db-reset', { method: 'POST' });
+        if (r.ok) {
+          App.toast('Baza de date a fost resetată! Se reîncarcă...', 'success');
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          const err = await r.json();
+          App.toast(err.error || 'Eroare la resetare', 'error');
+        }
+      } catch (e) {
+        App.toast('Eroare: ' + e.message, 'error');
+      }
+    };
   }
 };

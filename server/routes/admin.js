@@ -98,4 +98,29 @@ router.put('/settings', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+// ============ DATABASE ============
+
+// Get DB version info
+router.get('/db-version', requireAdmin, (req, res) => {
+  res.json({
+    codeVersion: db.getDbVersion(),
+    dbVersion: db.getStoredDbVersion(),
+    needsReset: db.getDbVersion() !== db.getStoredDbVersion()
+  });
+});
+
+// Reset database (super admin only — extra check on email)
+router.post('/db-reset', requireAdmin, (req, res) => {
+  if (req.user.email !== 'bogdansarac@gmail.com') {
+    return res.status(403).json({ error: 'Only super admin can reset the database' });
+  }
+  try {
+    const result = db.resetDatabase();
+    res.json({ ok: true, message: 'Database reset successfully', version: result.version });
+  } catch (e) {
+    console.error('DB reset error:', e);
+    res.status(500).json({ error: 'Failed to reset database: ' + e.message });
+  }
+});
+
 module.exports = router;

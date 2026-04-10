@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const DB_PATH = path.join(__dirname, '..', 'data', 'dsip.db');
+const DB_VERSION = 2; // Increment when schema changes — triggers "reset needed" warning in admin
 let db = null;
 let SQL = null;
 
@@ -20,7 +21,58 @@ async function init() {
   // Enable WAL-like behavior (not available in sql.js but we handle persistence manually)
   createTables();
   seed();
+
+  // Store current DB version
+  try {
+    db.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('db_version', ?)", [String(DB_VERSION)]);
+  } catch {}
+
   save();
+}
+
+// Reset database — drops everything, recreates schema + seed
+function resetDatabase() {
+  if (!SQL) throw new Error('SQL.js not initialized');
+
+  // Close current DB
+  if (db) {
+    try { db.close(); } catch {}
+  }
+
+  // Delete DB file
+  if (fs.existsSync(DB_PATH)) {
+    fs.unlinkSync(DB_PATH);
+  }
+
+  // Create fresh DB
+  db = new SQL.Database();
+  createTables();
+  seed();
+
+  // Store version
+  try {
+    db.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('db_version', ?)", [String(DB_VERSION)]);
+  } catch {}
+
+  save();
+  return { version: DB_VERSION };
+}
+
+function getDbVersion() {
+  return DB_VERSION;
+}
+
+function getStoredDbVersion() {
+  try {
+    const row = db.prepare("SELECT value FROM app_settings WHERE key = 'db_version'");
+    if (row.step()) {
+      const val = row.getAsObject().value;
+      row.free();
+      return parseInt(val) || 0;
+    }
+    row.free();
+  } catch {}
+  return 0;
 }
 
 function createTables() {
@@ -420,4 +472,4 @@ function seed() {
   console.log('  ✓ Seeded: 1 admin + 100 hydrants + 300 road signs in Sibiu');
 }
 
-module.exports = { init, get, all, run, save };
+module.exports = { init, get, all, run, save, resetDatabase, getDbVersion, getStoredDbVersion };
