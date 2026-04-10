@@ -3,7 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DSIP MapManager</title>
+  <title>DSIP MapManager — Geographic Asset Management &amp; Map Utilities</title>
+  <meta name="description" content="DSIP MapManager — a powerful map-based geo utility for managing geographic assets: fire hydrants, road signs, infrastructure markers. Interactive Google Maps with team collaboration, project management, and real-time tracking.">
+  <meta name="keywords" content="map utilities, geo utilities, geographic asset management, map manager, GIS tool, infrastructure management, fire hydrant map, road sign tracker, geolocation markers, interactive map tool, Google Maps manager, asset tracking map, geographic information system, marker management, map project management, location-based management, utility mapping tool, geo marker tool">
+  <meta name="author" content="DSIP MapManager">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://maps.djooga.com/">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://maps.djooga.com/">
+  <meta property="og:title" content="DSIP MapManager — Geographic Asset Management &amp; Map Utilities">
+  <meta property="og:description" content="Manage geographic assets on interactive maps. Track fire hydrants, road signs, and infrastructure with team collaboration and project management.">
+  <meta property="og:site_name" content="DSIP MapManager">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="DSIP MapManager — Geographic Asset Management &amp; Map Utilities">
+  <meta name="twitter:description" content="Manage geographic assets on interactive maps. Track fire hydrants, road signs, and infrastructure with team collaboration and project management.">
+
+  <!-- Structured Data / JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "DSIP MapManager",
+    "description": "A powerful map-based geo utility for managing geographic assets like fire hydrants, road signs, and infrastructure markers on interactive Google Maps.",
+    "url": "https://maps.djooga.com",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "featureList": [
+      "Interactive Google Maps",
+      "Geographic asset management",
+      "Fire hydrant tracking",
+      "Road sign management",
+      "Team collaboration",
+      "Project-based marker organization",
+      "Custom marker types",
+      "Multi-language support"
+    ]
+  }
+  </script>
+
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' stroke='%234f6ef7' stroke-width='2' fill='none' opacity='0.5'/><circle cx='16' cy='10' r='3' fill='%234f6ef7'/><circle cx='10' cy='20' r='2.5' fill='%234f6ef7' opacity='0.7'/><circle cx='22' cy='18' r='2.5' fill='%234f6ef7' opacity='0.85'/></svg>">
   <link rel="stylesheet" href="/css/style.css?v=2">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -448,9 +494,13 @@
           <!-- Settings tab (super admin only) -->
           <div id="admin-tab-settings" class="admin-tab-content" style="padding:16px">
             <div class="form-grid">
-              <div class="form-group col-span-2">
-                <label>Limită API zilnică per user (super admin nu e limitat)</label>
+              <div class="form-group">
+                <label>Limită API zilnică per user</label>
                 <input id="set-api-limit" type="number" class="form-input" min="1" value="10">
+              </div>
+              <div class="form-group">
+                <label>Limită API totală per user</label>
+                <input id="set-api-total-limit" type="number" class="form-input" min="1" value="50">
               </div>
               <div class="form-group">
                 <label>Ad Splash Interval (minute)</label>

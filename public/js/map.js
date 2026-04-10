@@ -36,7 +36,11 @@ window.MapManager = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type })
       });
-      if (r.status === 429) return false;
+      if (r.status === 429) {
+        const data = await r.json().catch(() => ({}));
+        this._lastLimitError = data.error || 'rate_limit';
+        return false;
+      }
       return r.ok;
     } catch { return true; }
   },
@@ -175,7 +179,10 @@ window.MapManager = {
     // Check rate limit before geocoding
     const allowed = await this.checkAndIncrement('geocode');
     if (!allowed) {
-      App.toast('Limita zilnică de căutări atinsă.', 'warning');
+      const msg = this._lastLimitError === 'total_limit'
+        ? 'Limita totală de căutări atinsă.'
+        : 'Limita zilnică de căutări atinsă.';
+      App.toast(msg, 'warning');
       resultsEl.classList.add('hidden');
       return;
     }
@@ -706,10 +713,15 @@ window.MapManager = {
   },
 
   showQuotaExhausted() {
+    const isTotal = this._lastLimitError === 'total_limit';
+    const title = isTotal ? 'Limită totală atinsă' : 'API Quota Exhausted';
+    const msg = isTotal
+      ? 'Ai atins limita totală de accesări API. Contactează administratorul.'
+      : 'Maps will be available again tomorrow.';
     document.getElementById('map').innerHTML = `
       <div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;color:var(--text-secondary);padding:40px;text-align:center;">
         <span class="material-icons-round" style="font-size:64px;opacity:0.3;margin-bottom:16px;">cloud_off</span>
-        <h2>API Quota Exhausted</h2><p>Maps will be available again tomorrow.</p>
+        <h2>${title}</h2><p>${msg}</p>
       </div>`;
   }
 };

@@ -381,6 +381,7 @@ window.AdminPanel = {
     if (!res.ok) return;
     const s = await res.json();
     document.getElementById('set-api-limit').value = s.api_daily_limit_per_user || 10;
+    document.getElementById('set-api-total-limit').value = s.api_total_limit_per_user || 50;
     document.getElementById('set-ad-interval').value = s.ad_splash_interval_minutes || 5;
     document.getElementById('set-ad-duration').value = s.ad_splash_duration_seconds || 10;
     document.getElementById('set-video-url').value = s.promo_video_url || '';
@@ -391,6 +392,7 @@ window.AdminPanel = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           api_daily_limit_per_user: document.getElementById('set-api-limit').value,
+          api_total_limit_per_user: document.getElementById('set-api-total-limit').value,
           ad_splash_interval_minutes: document.getElementById('set-ad-interval').value,
           ad_splash_duration_seconds: document.getElementById('set-ad-duration').value,
           promo_video_url: document.getElementById('set-video-url').value

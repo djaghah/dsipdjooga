@@ -81,7 +81,7 @@ async function start() {
   app.get('/api/public-settings', (req, res) => {
     const keys = ['ad_splash_interval_minutes', 'ad_splash_duration_seconds', 'promo_video_url',
                   'google_ads_client', 'google_ads_slot_sidebar', 'google_ads_slot_splash',
-                  'api_daily_limit_per_user'];
+                  'api_daily_limit_per_user', 'api_total_limit_per_user'];
     const rows = db.all('SELECT * FROM app_settings');
     const obj = {};
     rows.forEach(r => { if (keys.includes(r.key)) obj[r.key] = r.value; });
@@ -110,6 +110,14 @@ async function start() {
       const todayTotal = db.get('SELECT SUM(count) as total FROM api_usage WHERE user_id = ? AND date = ?', [req.user.id, today]);
       if ((todayTotal?.total || 0) >= limit) {
         return res.status(429).json({ error: 'rate_limit', message: `Limita zilnică de ${limit} accesări API atinsă.`, limit });
+      }
+
+      // Check total limit (all-time)
+      const totalLimitSetting = db.get("SELECT value FROM app_settings WHERE key = 'api_total_limit_per_user'");
+      const totalLimit = parseInt(totalLimitSetting?.value) || 50;
+      const allTimeTotal = db.get('SELECT SUM(count) as total FROM api_usage WHERE user_id = ?', [req.user.id]);
+      if ((allTimeTotal?.total || 0) >= totalLimit) {
+        return res.status(429).json({ error: 'total_limit', message: `Limita totală de ${totalLimit} accesări API atinsă.`, limit: totalLimit });
       }
     }
 
@@ -153,6 +161,25 @@ async function start() {
       [monthStart]
     );
 
+    // All-time totals per user
+    const perUserAllTime = db.all(
+      `SELECT u.name, u.email, a.user_id, SUM(a.count) as total
+       FROM api_usage a JOIN users u ON a.user_id = u.id
+       GROUP BY a.user_id`
+    );
+
+    // Global all-time total
+    const globalTotal = db.get('SELECT SUM(count) as total FROM api_usage') || { total: 0 };
+
+    // This user all-time total
+    const myAllTime = db.get('SELECT SUM(count) as total FROM api_usage WHERE user_id = ?', [req.user.id]) || { total: 0 };
+
+    // Limits
+    const dailyLimitSetting = db.get("SELECT value FROM app_settings WHERE key = 'api_daily_limit_per_user'");
+    const totalLimitSetting = db.get("SELECT value FROM app_settings WHERE key = 'api_total_limit_per_user'");
+    const dailyLimit = parseInt(dailyLimitSetting?.value) || 10;
+    const totalLimit = parseInt(totalLimitSetting?.value) || 50;
+
     // Cost calculation (USD):
     // Maps JS API: $7 per 1000 loads
     // Geocoding: $5 per 1000 requests
@@ -170,6 +197,12 @@ async function start() {
       userCosts[key].breakdown[r.type] = r.count;
     });
 
+    // Add all-time totals to user breakdown
+    perUserAllTime.forEach(r => {
+      const key = r.name || r.email;
+      if (userCosts[key]) userCosts[key].totalAllTime = r.total;
+    });
+
     res.json({
       today: Object.fromEntries(myToday.map(r => [r.type, r.count])),
       myMonth: Object.fromEntries(myMonth.map(r => [r.type, r.count])),
@@ -177,7 +210,11 @@ async function start() {
       totalCostUSD: Math.round(totalCost * 100) / 100,
       creditUSD: monthlyCredit,
       remainingCreditUSD: Math.round((monthlyCredit - totalCost) * 100) / 100,
-      users: Object.values(userCosts)
+      users: Object.values(userCosts),
+      globalTotalCalls: globalTotal.total || 0,
+      myTotalCalls: myAllTime.total || 0,
+      dailyLimit,
+      totalLimit
     });
   });
 

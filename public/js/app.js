@@ -7,6 +7,10 @@ window.App = {
   config: null,
   mode: 'view', // 'view' or 'admin'
 
+  _user_is_super_admin() {
+    return this.user && this.user.role === 'admin' && this.user.email === 'bogdansarac@gmail.com';
+  },
+
   async init() {
     // Load config
     try {
@@ -269,7 +273,14 @@ window.App = {
       fill.classList.remove('warning', 'danger');
       if (pct > 80) fill.classList.add('danger');
       else if (pct > 50) fill.classList.add('warning');
-      document.getElementById('usage-text').textContent = `$${data.totalCostUSD}/$${data.creditUSD}`;
+
+      // Super admin sees total calls, regular users see cost
+      const isSuperAdmin = this.user && this.user.role === 'admin' && this.user.email === 'bogdansarac@gmail.com';
+      if (isSuperAdmin) {
+        document.getElementById('usage-text').textContent = `${data.globalTotalCalls} total | $${data.totalCostUSD}/$${data.creditUSD}`;
+      } else {
+        document.getElementById('usage-text').textContent = `$${data.totalCostUSD}/$${data.creditUSD}`;
+      }
 
       // Store for modal
       this._usageData = data;
@@ -319,16 +330,43 @@ window.App = {
     }
     html += `</div>`;
 
+    // Total calls summary (visible to super admin)
+    const isSuperAdmin = this._user_is_super_admin();
+    if (isSuperAdmin && d.globalTotalCalls != null) {
+      html += `<div style="display:flex;gap:12px;margin-bottom:16px;padding:12px;background:var(--bg-tertiary);border-radius:var(--radius-md);border:1px solid var(--accent);border-opacity:0.3">
+        <div style="flex:1;text-align:center">
+          <div style="font-size:24px;font-weight:700;font-family:var(--font-mono);color:var(--accent)">${d.globalTotalCalls}</div>
+          <div style="font-size:11px;color:var(--text-tertiary)">Total apeluri platformă</div>
+        </div>
+        <div style="flex:1;text-align:center">
+          <div style="font-size:24px;font-weight:700;font-family:var(--font-mono)">${d.dailyLimit || 10}</div>
+          <div style="font-size:11px;color:var(--text-tertiary)">Limită zilnică/user</div>
+        </div>
+        <div style="flex:1;text-align:center">
+          <div style="font-size:24px;font-weight:700;font-family:var(--font-mono)">${d.totalLimit || 50}</div>
+          <div style="font-size:11px;color:var(--text-tertiary)">Limită totală/user</div>
+        </div>
+      </div>`;
+    }
+
     // Per user breakdown
     if (d.users.length > 0) {
       html += `<h4 style="font-size:13px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;margin-bottom:8px">Consum per utilizator</h4>`;
       d.users.sort((a, b) => b.cost - a.cost);
       d.users.forEach(u => {
         const details = Object.entries(u.breakdown).map(([t, c]) => `${typeLabels[t] || t}: ${c}`).join(', ');
+        const totalAllTime = u.totalAllTime || 0;
+        const totalLimitVal = d.totalLimit || 50;
+        const totalPct = Math.min(100, Math.round(totalAllTime / totalLimitVal * 100));
+        const totalColor = totalPct >= 90 ? 'var(--danger)' : totalPct >= 70 ? 'var(--warning)' : 'var(--accent)';
         html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg-tertiary);border-radius:var(--radius-sm);margin-bottom:4px">
           <div style="flex:1;min-width:0">
             <div style="font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.name}</div>
             <div style="font-size:11px;color:var(--text-tertiary)">${details}</div>
+            ${isSuperAdmin ? `<div style="margin-top:4px;height:4px;background:var(--bg-secondary);border-radius:2px;overflow:hidden">
+              <div style="height:100%;width:${totalPct}%;background:${totalColor};border-radius:2px"></div>
+            </div>
+            <div style="font-size:10px;color:var(--text-tertiary);margin-top:2px">Total: ${totalAllTime}/${totalLimitVal}</div>` : ''}
           </div>
           <div style="text-align:right;flex-shrink:0">
             <div style="font-weight:600;font-family:var(--font-mono);font-size:13px">${u.calls}</div>
@@ -341,7 +379,8 @@ window.App = {
     // My usage today
     const myT = d.today;
     if (myT && Object.keys(myT).length > 0) {
-      html += `<h4 style="font-size:13px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;margin:16px 0 8px">Eu azi</h4>
+      const myTodayTotal = Object.values(myT).reduce((a, b) => a + b, 0);
+      html += `<h4 style="font-size:13px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;margin:16px 0 8px">Eu azi (${myTodayTotal}/${d.dailyLimit || 10} zilnic, ${d.myTotalCalls || 0}/${d.totalLimit || 50} total)</h4>
       <div style="display:flex;gap:8px">`;
       for (const [type, count] of Object.entries(myT)) {
         html += `<div style="background:var(--bg-tertiary);padding:8px 12px;border-radius:var(--radius-sm);font-size:13px">

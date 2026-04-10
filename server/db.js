@@ -78,6 +78,7 @@ function createTables() {
     ad_splash_duration_seconds: '10',
     promo_video_url: '',
     api_daily_limit_per_user: '10',
+    api_total_limit_per_user: '50',
     google_ads_client: process.env.GOOGLE_ADS_CLIENT || '',
     google_ads_slot_sidebar: process.env.GOOGLE_ADS_SLOT_SIDEBAR || '',
     google_ads_slot_splash: process.env.GOOGLE_ADS_SLOT_SPLASH || ''
