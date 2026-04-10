@@ -3,63 +3,196 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DSIP MapManager — Geographic Asset Management &amp; Map Utilities</title>
-  <meta name="description" content="DSIP MapManager — a powerful map-based geo utility for managing geographic assets: fire hydrants, road signs, infrastructure markers. Interactive Google Maps with team collaboration, project management, and real-time tracking.">
-  <meta name="keywords" content="map utilities, geo utilities, geographic asset management, map manager, GIS tool, infrastructure management, fire hydrant map, road sign tracker, geolocation markers, interactive map tool, Google Maps manager, asset tracking map, geographic information system, marker management, map project management, location-based management, utility mapping tool, geo marker tool">
-  <meta name="author" content="DSIP MapManager">
-  <meta name="robots" content="index, follow">
+  <title>DSIP MapManager — Free Online Map Tool for Geographic Asset Management, GIS Utilities &amp; Infrastructure Tracking</title>
+  <meta name="description" content="DSIP MapManager is a free online map utility for geographic asset management. Track fire hydrants, road signs, and infrastructure on interactive Google Maps. Collaborate with teams, manage geolocated markers, organize projects, and monitor maintenance — all from your browser. GIS tool with custom marker types, multi-language support, and real-time location tracking.">
+  <meta name="keywords" content="map utilities, geo utilities, geographic asset management, map manager, GIS tool, free GIS software, infrastructure management, fire hydrant map, road sign tracker, geolocation markers, interactive map tool, Google Maps manager, asset tracking map, geographic information system, marker management, map project management, location-based management, utility mapping tool, geo marker tool, online map tool, free map software, infrastructure tracking, asset management software, field asset management, municipal asset tracking, public works management, hydrant inspection map, road sign inventory, geotagging tool, map collaboration tool, team map manager, marker clustering, custom map markers, maintenance tracking map, warranty tracking tool, geographic project management">
+  <meta name="author" content="DSIP MapManager — Djooga">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta name="googlebot" content="index, follow">
   <link rel="canonical" href="https://maps.djooga.com/">
+
+  <!-- Language alternates -->
+  <link rel="alternate" hreflang="en" href="https://maps.djooga.com/">
+  <link rel="alternate" hreflang="ro" href="https://maps.djooga.com/">
+  <link rel="alternate" hreflang="de" href="https://maps.djooga.com/">
+  <link rel="alternate" hreflang="fr" href="https://maps.djooga.com/">
+  <link rel="alternate" hreflang="x-default" href="https://maps.djooga.com/">
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://maps.djooga.com/">
-  <meta property="og:title" content="DSIP MapManager — Geographic Asset Management &amp; Map Utilities">
-  <meta property="og:description" content="Manage geographic assets on interactive maps. Track fire hydrants, road signs, and infrastructure with team collaboration and project management.">
+  <meta property="og:title" content="DSIP MapManager — Free Map Tool for Geographic Asset Management">
+  <meta property="og:description" content="Track fire hydrants, road signs, and infrastructure on interactive Google Maps. Free online GIS tool with team collaboration, custom markers, and project management.">
   <meta property="og:site_name" content="DSIP MapManager">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="ro_RO">
+  <meta property="og:locale:alternate" content="de_DE">
+  <meta property="og:locale:alternate" content="fr_FR">
 
   <!-- Twitter -->
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="DSIP MapManager — Geographic Asset Management &amp; Map Utilities">
-  <meta name="twitter:description" content="Manage geographic assets on interactive maps. Track fire hydrants, road signs, and infrastructure with team collaboration and project management.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="DSIP MapManager — Free Map Tool for Geographic Asset Management">
+  <meta name="twitter:description" content="Track fire hydrants, road signs, and infrastructure on interactive Google Maps. Free online GIS tool with team collaboration, custom markers, and project management.">
 
-  <!-- Structured Data / JSON-LD -->
+  <!-- Structured Data: WebApplication -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "DSIP MapManager",
-    "description": "A powerful map-based geo utility for managing geographic assets like fire hydrants, road signs, and infrastructure markers on interactive Google Maps.",
+    "alternateName": ["MapManager", "DSIP Maps", "Djooga MapManager"],
+    "description": "A free online map-based GIS utility for managing geographic assets like fire hydrants, road signs, and infrastructure markers on interactive Google Maps. Features team collaboration, project management, custom marker types, and multi-language support.",
     "url": "https://maps.djooga.com",
     "applicationCategory": "UtilitiesApplication",
-    "operatingSystem": "Web",
+    "applicationSubCategory": "Geographic Information System",
+    "operatingSystem": "Web Browser",
+    "browserRequirements": "Requires JavaScript. Requires Google Chrome, Firefox, Safari, or Edge.",
+    "softwareVersion": "2.0",
+    "inLanguage": ["en", "ro", "de", "fr"],
     "offers": {
       "@type": "Offer",
       "price": "0",
-      "priceCurrency": "USD"
+      "priceCurrency": "USD",
+      "availability": "https://schema.org/InStock"
     },
     "featureList": [
-      "Interactive Google Maps",
-      "Geographic asset management",
-      "Fire hydrant tracking",
-      "Road sign management",
-      "Team collaboration",
+      "Interactive Google Maps integration",
+      "Geographic asset management and tracking",
+      "Fire hydrant location mapping and inspection tracking",
+      "Road sign inventory and condition monitoring",
+      "Infrastructure marker management",
+      "Team collaboration with role-based access",
       "Project-based marker organization",
-      "Custom marker types",
-      "Multi-language support"
+      "Custom marker types with SVG icons",
+      "Multi-language interface (English, Romanian, German, French)",
+      "Dark and light theme support",
+      "Geocoding search with address lookup",
+      "Marker clustering for large datasets",
+      "Image attachments for field documentation",
+      "Maintenance scheduling and cost tracking",
+      "Warranty and installation date management",
+      "Real-time usage monitoring and analytics",
+      "Google OAuth secure authentication",
+      "Mobile-responsive design"
+    ],
+    "screenshot": "https://maps.djooga.com/img/screenshot.png",
+    "author": {
+      "@type": "Organization",
+      "name": "Djooga",
+      "url": "https://djooga.com"
+    }
+  }
+  </script>
+
+  <!-- Structured Data: Organization -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Djooga",
+    "url": "https://djooga.com",
+    "logo": "https://maps.djooga.com/img/logo.png",
+    "sameAs": [],
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "contactType": "customer support",
+      "availableLanguage": ["English", "Romanian"]
+    }
+  }
+  </script>
+
+  <!-- Structured Data: FAQ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is DSIP MapManager?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DSIP MapManager is a free online geographic asset management tool that lets you track and manage infrastructure assets like fire hydrants, road signs, and other geolocated markers on interactive Google Maps. It supports team collaboration, project-based organization, custom marker types, and multi-language interfaces."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is DSIP MapManager free to use?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, DSIP MapManager is free to use. Simply sign in with your Google account to get started. The platform includes interactive maps, marker management, team collaboration, and project organization at no cost."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What types of assets can I track on the map?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "You can track any type of geographic asset including fire hydrants, road signs, utility poles, infrastructure equipment, street furniture, and custom asset types. Each marker supports metadata like status, condition, installation date, warranty, maintenance schedule, cost, and responsible person. You can also attach photos for field documentation."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I use DSIP MapManager for municipal infrastructure management?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Absolutely. DSIP MapManager is designed for municipal and public works use cases. It's ideal for tracking fire hydrants, road signs, street lights, and other public infrastructure. Features include maintenance scheduling, warranty tracking, cost monitoring, team assignments with role-based access control, and project-based organization for different departments."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What languages does DSIP MapManager support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DSIP MapManager supports four languages: English, Romanian (Romana), German (Deutsch), and French (Francais). You can switch languages at any time from the dashboard settings."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does team collaboration work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Project administrators can invite team members by email. Each member can be assigned an Admin or Viewer role. Admins can add, edit, and delete markers, while Viewers have read-only access. This role-based system is enforced both in the user interface and at the API level for security."
+        }
+      }
     ]
   }
   </script>
 
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' stroke='%234f6ef7' stroke-width='2' fill='none' opacity='0.5'/><circle cx='16' cy='10' r='3' fill='%234f6ef7'/><circle cx='10' cy='20' r='2.5' fill='%234f6ef7' opacity='0.7'/><circle cx='22' cy='18' r='2.5' fill='%234f6ef7' opacity='0.85'/></svg>">
-  <link rel="stylesheet" href="/css/style.css?v=2">
+  <!-- Structured Data: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://maps.djooga.com/"
+      }
+    ]
+  }
+  </script>
+
+  <!-- Performance hints -->
+  <link rel="dns-prefetch" href="https://maps.googleapis.com">
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+  <link rel="dns-prefetch" href="https://fonts.gstatic.com">
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' stroke='%234f6ef7' stroke-width='2' fill='none' opacity='0.5'/><circle cx='16' cy='10' r='3' fill='%234f6ef7'/><circle cx='10' cy='20' r='2.5' fill='%234f6ef7' opacity='0.7'/><circle cx='22' cy='18' r='2.5' fill='%234f6ef7' opacity='0.85'/></svg>">
+  <link rel="stylesheet" href="/css/style.css?v=3">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 </head>
 <body>
-  <!-- ==================== LOGIN PAGE ==================== -->
+  <!-- ==================== LANDING / LOGIN PAGE ==================== -->
   <div id="view-login" class="view active">
-    <div class="login-bg">
+
+    <!-- Hero section with login -->
+    <header class="login-bg" role="banner">
       <div class="floating-shapes">
         <div class="shape shape-1"></div><div class="shape shape-2"></div><div class="shape shape-3"></div>
         <div class="shape shape-4"></div><div class="shape shape-5"></div><div class="shape shape-6"></div>
@@ -69,19 +202,19 @@
       <div class="login-showcase">
         <div class="showcase-item showcase-1">
           <div class="showcase-icon"><span class="material-icons-round">map</span></div>
-          <div class="showcase-text">Gestionează locații pe hartă interactivă</div>
+          <div class="showcase-text">Manage locations on interactive maps</div>
         </div>
         <div class="showcase-item showcase-2">
           <div class="showcase-icon"><span class="material-icons-round">local_fire_department</span></div>
-          <div class="showcase-text">Hidranți, semne rutiere, infrastructură</div>
+          <div class="showcase-text">Fire hydrants, road signs, infrastructure</div>
         </div>
         <div class="showcase-item showcase-3">
           <div class="showcase-icon"><span class="material-icons-round">groups</span></div>
-          <div class="showcase-text">Echipe, responsabili, mentenanță</div>
+          <div class="showcase-text">Teams, assignments, maintenance tracking</div>
         </div>
         <div class="showcase-item showcase-4">
           <div class="showcase-icon"><span class="material-icons-round">analytics</span></div>
-          <div class="showcase-text">Monitorizare stare, costuri, garanții</div>
+          <div class="showcase-text">Monitor status, costs, and warranties</div>
         </div>
       </div>
 
@@ -89,7 +222,7 @@
       <div class="login-card animate-in">
         <div class="login-logo">
           <div class="logo-icon">
-            <svg viewBox="0 0 80 80" fill="none">
+            <svg viewBox="0 0 80 80" fill="none" role="img" aria-label="DSIP MapManager logo">
               <circle cx="40" cy="40" r="36" stroke="currentColor" stroke-width="3" opacity="0.3"/>
               <circle cx="40" cy="26" r="5" fill="var(--accent)"/><circle cx="28" cy="48" r="4" fill="var(--accent)" opacity="0.7"/>
               <circle cx="54" cy="42" r="4.5" fill="var(--accent)" opacity="0.85"/>
@@ -97,19 +230,236 @@
             </svg>
           </div>
           <h1>DSIP <span>MapManager</span></h1>
-          <p class="login-subtitle">Platformă de management geografic</p>
+          <p class="login-subtitle">Free Online Map Tool for Geographic Asset Management</p>
         </div>
         <button class="btn-google" onclick="window.location.href='/auth/google'">
-          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-          <span>Conectare cu Google</span>
+          <svg viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="Google logo"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          <span>Sign in with Google</span>
         </button>
         <div class="login-features">
-          <div class="feature-item animate-stagger-1"><span class="material-icons-round">map</span><span>Hărți Interactive</span></div>
-          <div class="feature-item animate-stagger-2"><span class="material-icons-round">push_pin</span><span>Markere Custom</span></div>
-          <div class="feature-item animate-stagger-3"><span class="material-icons-round">folder</span><span>Proiecte</span></div>
+          <div class="feature-item animate-stagger-1"><span class="material-icons-round">map</span><span>Interactive Maps</span></div>
+          <div class="feature-item animate-stagger-2"><span class="material-icons-round">push_pin</span><span>Custom Markers</span></div>
+          <div class="feature-item animate-stagger-3"><span class="material-icons-round">folder</span><span>Projects</span></div>
         </div>
       </div>
-    </div>
+    </header>
+
+    <!-- ==================== SEO LANDING CONTENT ==================== -->
+    <!-- This content is crawled by Google and provides SEO value -->
+    <main class="landing-content">
+
+      <!-- What is section -->
+      <section class="landing-section" id="about">
+        <div class="landing-container">
+          <h2 class="landing-h2">What is DSIP MapManager?</h2>
+          <p class="landing-lead">DSIP MapManager is a <strong>free online geographic asset management tool</strong> built on <strong>Google Maps</strong>. It helps municipalities, utility companies, field teams, and infrastructure managers track, organize, and maintain physical assets across large geographic areas — directly from the browser.</p>
+          <p>Whether you need to map <strong>fire hydrants</strong> across a city, inventory <strong>road signs</strong> along highways, or track <strong>street lights</strong>, utility poles, and other infrastructure — MapManager gives you an interactive map interface with powerful tools to manage it all.</p>
+        </div>
+      </section>
+
+      <!-- Features grid -->
+      <section class="landing-section landing-section-alt" id="features">
+        <div class="landing-container">
+          <h2 class="landing-h2">Map Utilities &amp; Key Features</h2>
+          <div class="landing-features-grid">
+
+            <article class="landing-feature-card">
+              <span class="material-icons-round landing-feature-icon">map</span>
+              <h3>Interactive Google Maps</h3>
+              <p>Full Google Maps integration with satellite, terrain, and street view. Geocoding search to find any address worldwide. Smooth zooming and panning with marker clustering for large datasets.</p>
+            </article>
+
+            <article class="landing-feature-card">
+              <span class="material-icons-round landing-feature-icon">push_pin</span>
+              <h3>Custom Geo Markers</h3>
+              <p>Create custom marker types with your own SVG icons. Over 80 built-in icons for fire hydrants, road signs, and default markers. Each marker stores title, status, condition, priority, cost, dates, and notes.</p>
+            </article>
+
+            <article class="landing-feature-card">
+              <span class="material-icons-round landing-feature-icon">folder_shared</span>
+              <h3>Project-Based Organization</h3>
+              <p>Organize assets into separate projects — one for hydrants, another for road signs, another for street furniture. Each project has its own map center, zoom level, and team members.</p>
+            </article>
+
+            <article class="landing-feature-card">
+              <span class="material-icons-round landing-feature-icon">groups</span>
+              <h3>Team Collaboration</h3>
+              <p>Invite team members by email with Admin or Viewer roles. Admins manage markers, Viewers have read-only access. Role-based access control enforced at both UI and API level for security.</p>
+            </article>
+
+            <article class="landing-feature-card">
+              <span class="material-icons-round landing-feature-icon">build</span>
+              <h3>Maintenance &amp; Cost Tracking</h3>
+              <p>Track installation dates, warranty expiry, maintenance schedules, repair history, and costs for every asset. Assign responsible persons and set priority levels. Monitor overall infrastructure spending.</p>
+            </article>
+
+            <article class="landing-feature-card">
+              <span class="material-icons-round landing-feature-icon">camera_alt</span>
+              <h3>Photo Documentation</h3>
+              <p>Attach photos to any marker for field documentation. Upload images directly from your phone during inspections. All photos are securely stored per user with access control.</p>
+            </article>
+
+            <article class="landing-feature-card">
+              <span class="material-icons-round landing-feature-icon">translate</span>
+              <h3>Multi-Language Support</h3>
+              <p>Full interface available in English, Romanian, German, and French. Switch languages instantly from the dashboard. All labels, buttons, and messages are fully translated.</p>
+            </article>
+
+            <article class="landing-feature-card">
+              <span class="material-icons-round landing-feature-icon">dark_mode</span>
+              <h3>Dark &amp; Light Themes</h3>
+              <p>Choose between dark and light mode for comfortable use in any lighting condition. The map and all interface elements adapt to your preferred theme. Settings are saved per user.</p>
+            </article>
+
+            <article class="landing-feature-card">
+              <span class="material-icons-round landing-feature-icon">security</span>
+              <h3>Secure Authentication</h3>
+              <p>Sign in safely with your Google account via OAuth 2.0. No passwords to manage. Whitelist-based access control ensures only authorized users can use the platform.</p>
+            </article>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- Use cases -->
+      <section class="landing-section" id="use-cases">
+        <div class="landing-container">
+          <h2 class="landing-h2">Who Uses MapManager?</h2>
+          <div class="landing-usecases">
+
+            <article class="landing-usecase">
+              <h3><span class="material-icons-round">local_fire_department</span> Fire Departments &amp; Hydrant Management</h3>
+              <p>Map every fire hydrant in your municipality. Track hydrant type (above-ground, underground, wall-mounted), status (active, maintenance, inactive), condition, installation date, and last inspection. Assign maintenance to team members and monitor warranty expiry dates. Over 24 specialized hydrant icons included.</p>
+            </article>
+
+            <article class="landing-usecase">
+              <h3><span class="material-icons-round">traffic</span> Road Sign Inventory &amp; Traffic Management</h3>
+              <p>Create a complete digital inventory of road signs along any road network. Track 55 different road sign types with dedicated icons — from speed limits and stop signs to directional and warning signs. Record sign condition, reflectivity status, installation date, and replacement schedule.</p>
+            </article>
+
+            <article class="landing-usecase">
+              <h3><span class="material-icons-round">domain</span> Municipal Infrastructure &amp; Public Works</h3>
+              <p>Manage any type of city infrastructure: street lights, utility poles, park benches, waste bins, bus stops, drainage covers, bridges, public buildings. Custom marker types let you define your own asset categories with custom SVG icons tailored to your specific use case.</p>
+            </article>
+
+            <article class="landing-usecase">
+              <h3><span class="material-icons-round">engineering</span> Utility Companies &amp; Field Service</h3>
+              <p>Track utility infrastructure across large geographic areas. Plan and manage field inspections, assign maintenance tasks to technicians, document asset conditions with photos, and monitor repair costs. Ideal for water, gas, electric, and telecom utility management.</p>
+            </article>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- How it works -->
+      <section class="landing-section landing-section-alt" id="how-it-works">
+        <div class="landing-container">
+          <h2 class="landing-h2">How It Works</h2>
+          <div class="landing-steps">
+            <div class="landing-step">
+              <div class="landing-step-num">1</div>
+              <h3>Sign In</h3>
+              <p>Click "Sign in with Google" to authenticate securely with your Google account. No registration forms or passwords needed.</p>
+            </div>
+            <div class="landing-step">
+              <div class="landing-step-num">2</div>
+              <h3>Create a Project</h3>
+              <p>Set up a project for your use case — fire hydrants, road signs, or any asset type. Configure the map center and invite team members.</p>
+            </div>
+            <div class="landing-step">
+              <div class="landing-step-num">3</div>
+              <h3>Add Markers</h3>
+              <p>Right-click on the map to place markers. Choose an icon, set the title, status, and metadata. Attach photos from the field.</p>
+            </div>
+            <div class="landing-step">
+              <div class="landing-step-num">4</div>
+              <h3>Manage &amp; Track</h3>
+              <p>Browse, filter, and search your assets in the sidebar. Monitor maintenance dates, warranty status, costs, and conditions over time.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ (visible) -->
+      <section class="landing-section" id="faq">
+        <div class="landing-container">
+          <h2 class="landing-h2">Frequently Asked Questions</h2>
+          <div class="landing-faq">
+            <details class="landing-faq-item" open>
+              <summary><strong>Is DSIP MapManager really free?</strong></summary>
+              <p>Yes. DSIP MapManager is free to use for authorized users. Sign in with your Google account and start managing geographic assets immediately. There are no hidden fees or premium tiers.</p>
+            </details>
+            <details class="landing-faq-item">
+              <summary><strong>What types of assets can I track on the map?</strong></summary>
+              <p>Anything with a geographic location: fire hydrants, road signs, street lights, utility poles, park equipment, waste containers, drainage systems, buildings, and more. You can create custom marker types with your own SVG icons for any asset category.</p>
+            </details>
+            <details class="landing-faq-item">
+              <summary><strong>Can multiple people work on the same project?</strong></summary>
+              <p>Yes. Project administrators can invite team members by email. Each member gets either Admin access (full editing rights) or Viewer access (read-only). All changes are synced in real-time across the team.</p>
+            </details>
+            <details class="landing-faq-item">
+              <summary><strong>Does it work on mobile devices?</strong></summary>
+              <p>Yes. The interface is fully responsive and works on smartphones, tablets, and desktops. You can add markers and upload photos directly from your phone during field inspections.</p>
+            </details>
+            <details class="landing-faq-item">
+              <summary><strong>What data can I store for each marker?</strong></summary>
+              <p>Each marker supports: title, geographic coordinates, icon type, status (active/maintenance/inactive), condition (good/fair/poor/critical), priority level, cost, currency, installation date, maintenance date, repair date, warranty date, responsible person, observations, custom JSON data, and photo attachments.</p>
+            </details>
+            <details class="landing-faq-item">
+              <summary><strong>Is my data secure?</strong></summary>
+              <p>Yes. Authentication is handled through Google OAuth 2.0. The application runs in a Docker container with security hardening: read-only filesystem, dropped capabilities, no-new-privileges flag, and resource limits. Access is controlled via whitelist and role-based permissions.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- SEO footer -->
+      <footer class="landing-footer">
+        <div class="landing-container">
+          <div class="landing-footer-grid">
+            <div>
+              <h4>DSIP MapManager</h4>
+              <p>Free online map tool for geographic asset management. Built with Google Maps, Node.js, and modern web technologies.</p>
+            </div>
+            <div>
+              <h4>Features</h4>
+              <ul>
+                <li>Interactive Google Maps</li>
+                <li>Custom marker types</li>
+                <li>Team collaboration</li>
+                <li>Maintenance tracking</li>
+                <li>Photo documentation</li>
+                <li>Multi-language (EN, RO, DE, FR)</li>
+              </ul>
+            </div>
+            <div>
+              <h4>Use Cases</h4>
+              <ul>
+                <li>Fire hydrant management</li>
+                <li>Road sign inventory</li>
+                <li>Municipal infrastructure</li>
+                <li>Utility asset tracking</li>
+                <li>Field inspection tools</li>
+                <li>Public works management</li>
+              </ul>
+            </div>
+            <div>
+              <h4>Technology</h4>
+              <ul>
+                <li>Google Maps JavaScript API</li>
+                <li>Google Geocoding API</li>
+                <li>Google OAuth 2.0</li>
+                <li>Node.js &amp; Express</li>
+                <li>SQLite database</li>
+                <li>Docker deployment</li>
+              </ul>
+            </div>
+          </div>
+          <p class="landing-copyright">&copy; 2025 DSIP MapManager by <a href="https://djooga.com" rel="author">Djooga</a>. Geographic asset management made simple.</p>
+        </div>
+      </footer>
+
+    </main>
   </div>
 
   <!-- ==================== UNAUTHORIZED PAGE ==================== -->

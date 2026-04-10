@@ -44,11 +44,24 @@ async function start() {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // SEO: proper content-type for sitemap
+  app.get('/sitemap.xml', (req, res) => {
+    res.setHeader('Content-Type', 'application/xml');
+    res.sendFile(path.join(__dirname, 'public', 'sitemap.xml'));
+  });
+
   // Static files (no cache in development)
   app.use(express.static(path.join(__dirname, 'public'), {
     etag: false,
     maxAge: 0,
-    setHeaders: (res) => { res.setHeader('Cache-Control', 'no-store'); }
+    setHeaders: (res, filePath) => {
+      res.setHeader('Cache-Control', 'no-store');
+      // SEO headers
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      if (filePath.endsWith('.html')) {
+        res.setHeader('X-Robots-Tag', 'index, follow');
+      }
+    }
   }));
 
   // User uploads - only accessible when authenticated, scoped to user

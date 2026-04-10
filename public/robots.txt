@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /uploads/
+Disallow: /data/
+
+Sitemap: https://maps.djooga.com/sitemap.xml
