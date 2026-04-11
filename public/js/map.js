@@ -42,7 +42,7 @@ window.MapManager = {
     await this.loadGoogleMaps();
   },
 
-  // Try to increment usage — returns false if rate limited
+  // Try to increment usage — returns false ONLY if rate limited (429)
   async checkAndIncrement(type) {
     try {
       const r = await fetch('/api/usage/increment', {
@@ -55,7 +55,8 @@ window.MapManager = {
         this._lastLimitError = data.error || 'rate_limit';
         return false;
       }
-      return r.ok;
+      // 401 (not authenticated) or other errors = allow anyway (don't block map)
+      return true;
     } catch { return true; }
   },
 
