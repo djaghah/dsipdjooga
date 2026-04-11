@@ -69,7 +69,7 @@ window.MapManager = {
     return new Promise((resolve, reject) => {
       if (window.google?.maps) { this.onMapsLoaded(); return resolve(); }
       const s = document.createElement('script');
-      s.src = `https://maps.googleapis.com/maps/api/js?key=${App.config.mapsApiKey}&libraries=places,marker&callback=__initMap`;
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${App.config.mapsApiKey}&libraries=places,marker&loading=async&callback=__initMap`;
       s.async = true; s.defer = true;
       window.__initMap = () => { delete window.__initMap; this.onMapsLoaded(); resolve(); };
       s.onerror = () => reject();

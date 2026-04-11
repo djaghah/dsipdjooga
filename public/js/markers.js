@@ -475,6 +475,11 @@ window.Markers = {
       return;
     }
 
+    if (!window.jspdf?.jsPDF) {
+      App.toast('PDF library loading... try again in a moment.', 'warning');
+      return;
+    }
+
     const markers = this.filteredList;
     const project = App.currentProject;
     const { jsPDF } = window.jspdf;
