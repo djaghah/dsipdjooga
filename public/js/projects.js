@@ -127,6 +127,22 @@ window.Projects = {
     }
     container.innerHTML = html;
 
+    // Toggle public (super admin only)
+    container.querySelectorAll('.btn-toggle-public').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const r = await fetch(`/api/admin/projects/${id}/public`, { method: 'PUT' });
+        if (r.ok) {
+          const data = await r.json();
+          App.toast(data.is_public ? 'Project set to PUBLIC' : 'Project set to PRIVATE', 'success');
+          await this.loadAll();
+          this.renderManageList();
+        } else {
+          App.toast('Error toggling visibility', 'error');
+        }
+      });
+    });
+
     // Edit buttons
     container.querySelectorAll('.btn-edit-project').forEach(btn => {
       btn.addEventListener('click', () => this.startEdit(parseInt(btn.dataset.id)));
@@ -236,18 +252,27 @@ window.Projects = {
   },
 
   _renderManageItem(p, isOwner) {
+    const isSuperAdmin = App._user_is_super_admin();
     const roleBadge = isOwner
       ? '<span style="font-size:9px;color:var(--warning);background:rgba(245,158,11,0.1);padding:1px 5px;border-radius:99px;font-weight:600">owner</span>'
       : `<span style="font-size:9px;color:var(--info);background:rgba(59,130,246,0.1);padding:1px 5px;border-radius:99px;font-weight:600">${p.my_role || 'viewer'}</span>`;
+    const publicBadge = p.is_public
+      ? '<span style="font-size:9px;color:var(--success);background:rgba(16,185,129,0.1);padding:1px 5px;border-radius:99px;font-weight:600;margin-left:4px">public</span>'
+      : '';
     return `
       <div class="manage-project-item" data-id="${p.id}">
         <div class="manage-project-avatar">${Icons.getAvatar(p.avatar_index)}</div>
         <div class="manage-project-info">
-          <div class="manage-project-name">${this.escHtml(p.name)} ${roleBadge}</div>
+          <div class="manage-project-name">${this.escHtml(p.name)} ${roleBadge}${publicBadge}</div>
           <div class="manage-project-meta">${I18n.t('projects.markerCount', { count: p.marker_count || 0 })} · ${new Date(p.created_at).toLocaleDateString()}</div>
         </div>
         <div class="manage-project-actions">
-          ${(isOwner || role === 'admin') ? `
+          ${isSuperAdmin ? `
+            <button class="btn-icon btn-toggle-public" title="${p.is_public ? 'Make Private' : 'Make Public'}" data-id="${p.id}" data-public="${p.is_public ? 1 : 0}">
+              <span class="material-icons-round" style="color:${p.is_public ? 'var(--success)' : 'var(--text-tertiary)'}">${p.is_public ? 'public' : 'public_off'}</span>
+            </button>
+          ` : ''}
+          ${(isOwner || p.my_role === 'admin') ? `
             <button class="btn-icon btn-members-project" title="Membrii" data-id="${p.id}">
               <span class="material-icons-round">group</span>
             </button>
