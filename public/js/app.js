@@ -33,20 +33,35 @@ window.App = {
   },
 
   showLogin() {
-    // Dashboard layout stays visible — show login overlay on map area
+    // Dashboard layout visible — public projects viewable with Leaflet (free, no API calls)
     document.getElementById('view-dashboard').classList.add('active');
     document.getElementById('view-login').classList.remove('active');
-    document.getElementById('map-overlay-login').classList.remove('hidden');
-    document.getElementById('map-overlay-no-project').classList.add('hidden');
-    // Disable header interactions for non-authenticated users
-    document.querySelector('.app-header').classList.add('disabled-header');
+    // Show login button in header, hide user menu
+    document.getElementById('btn-header-login').classList.remove('hidden');
+    document.getElementById('user-menu-wrapper').classList.add('hidden');
+    // Hide controls that require auth
+    document.getElementById('admin-role-toggle').classList.add('hidden');
+    document.getElementById('btn-admin-panel').classList.add('hidden');
+    document.querySelectorAll('.view-mode-toggle, #btn-toggle-poi, .maps-usage').forEach(el => el.classList.add('hidden'));
+    // Hide sidebar search/filters (no geocoding for public)
+    document.getElementById('map-search-box').classList.add('hidden');
+    document.getElementById('coord-input').classList.add('hidden');
+    // Load public projects
+    this.loadPublicProjects();
   },
 
   async showDashboard() {
     document.getElementById('view-login').classList.remove('active');
     document.getElementById('view-dashboard').classList.add('active');
-    document.getElementById('map-overlay-login').classList.add('hidden');
-    document.querySelector('.app-header').classList.remove('disabled-header');
+    // Show user menu, hide login button
+    document.getElementById('btn-header-login').classList.add('hidden');
+    document.getElementById('user-menu-wrapper').classList.remove('hidden');
+    // Show controls
+    document.querySelectorAll('.view-mode-toggle, #btn-toggle-poi, .maps-usage').forEach(el => el.classList.remove('hidden'));
+    document.getElementById('map-search-box').classList.remove('hidden');
+    // Hide public map, show Google map
+    document.getElementById('public-map').classList.add('hidden');
+    document.getElementById('map').classList.remove('hidden');
     // Hide SEO landing content for authenticated users
     const seoLanding = document.getElementById('seo-landing');
     if (seoLanding) seoLanding.style.display = 'none';
@@ -420,6 +435,114 @@ window.App = {
 
     document.getElementById('usage-modal-body').innerHTML = html;
     this.openModal('modal-usage');
+  },
+
+  // --- Public projects (unauthenticated view with Leaflet) ---
+  _leafletMap: null,
+  _leafletMarkers: [],
+
+  async loadPublicProjects() {
+    try {
+      const res = await fetch('/api/public-projects');
+      if (!res.ok) return;
+      const projects = await res.json();
+      if (projects.length === 0) {
+        document.getElementById('map-overlay-no-project').classList.remove('hidden');
+        return;
+      }
+      // Render in project dropdown
+      const container = document.getElementById('project-list');
+      container.innerHTML = `<div style="padding:6px 12px;font-size:10px;font-weight:600;text-transform:uppercase;color:var(--text-tertiary);letter-spacing:0.5px">${I18n.t('projects.publicProjects')}</div>` +
+        projects.map(p => `
+          <div class="project-item" data-id="${p.id}">
+            <div class="project-item-avatar">${Icons.getAvatar(p.avatar_index)}</div>
+            <div class="project-item-info">
+              <div class="project-item-name">${p.name} <span style="font-size:9px;color:var(--success);background:rgba(16,185,129,0.1);padding:1px 5px;border-radius:99px">public</span></div>
+              <div class="project-item-count">${p.marker_count || 0} markers</div>
+            </div>
+          </div>`).join('');
+
+      container.querySelectorAll('.project-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const p = projects.find(x => x.id === parseInt(item.dataset.id));
+          if (p) this.selectPublicProject(p);
+        });
+      });
+
+      // Auto-select first public project
+      if (projects.length > 0) this.selectPublicProject(projects[0]);
+    } catch (e) {
+      console.error('Failed to load public projects:', e);
+    }
+  },
+
+  async selectPublicProject(project) {
+    document.getElementById('project-name').textContent = project.name;
+    document.getElementById('project-avatar').innerHTML = Icons.getAvatar(project.avatar_index);
+    document.getElementById('project-dropdown').classList.add('hidden');
+    document.getElementById('map-overlay-no-project').classList.add('hidden');
+
+    // Hide Google Map, show Leaflet public map
+    document.getElementById('map').classList.add('hidden');
+    const pubMap = document.getElementById('public-map');
+    pubMap.classList.remove('hidden');
+
+    // Fetch markers
+    try {
+      const res = await fetch(`/api/public-projects/${project.id}/markers`);
+      if (!res.ok) return;
+      const data = await res.json();
+
+      // Initialize Leaflet map (free, no API key)
+      if (this._leafletMap) { this._leafletMap.remove(); this._leafletMap = null; }
+      this._leafletMap = L.map('public-map').setView([project.center_lat || 45.7983, project.center_lng || 24.1256], project.default_zoom || 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(this._leafletMap);
+
+      // Add markers
+      this._leafletMarkers = [];
+      const markerList = data.markers || [];
+      markerList.forEach(m => {
+        const marker = L.marker([m.lat, m.lng]).addTo(this._leafletMap);
+        marker.bindPopup(`<strong>${m.title || 'Marker'}</strong><br>${m.status || ''} · ${m.condition || ''}`);
+        this._leafletMarkers.push(marker);
+      });
+
+      // Render sidebar marker list (read-only)
+      const listEl = document.getElementById('marker-list');
+      if (markerList.length === 0) {
+        listEl.innerHTML = '<div class="empty-state"><span class="material-icons-round">place</span><p>No markers</p></div>';
+      } else {
+        listEl.innerHTML = markerList.map(m => `
+          <div class="marker-item" data-lat="${m.lat}" data-lng="${m.lng}">
+            <div class="marker-item-icon">${Icons.getIconByType(m.icon_type, m.icon_index)}</div>
+            <div class="marker-item-info">
+              <div class="marker-item-title">${m.title || 'Marker'}</div>
+              <div class="marker-item-meta">${m.status || ''} · ${m.condition || ''}</div>
+            </div>
+          </div>`).join('');
+
+        listEl.querySelectorAll('.marker-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const lat = parseFloat(item.dataset.lat);
+            const lng = parseFloat(item.dataset.lng);
+            if (this._leafletMap) this._leafletMap.setView([lat, lng], 17);
+          });
+        });
+      }
+
+      // Stats
+      document.getElementById('stat-total').textContent = markerList.length;
+      document.getElementById('stat-active').textContent = markerList.filter(m => m.status === 'active').length;
+      document.getElementById('stat-maintenance').textContent = markerList.filter(m => m.status === 'maintenance').length;
+
+      // Disable sidebar controls that need auth
+      document.getElementById('btn-export-pdf').classList.add('hidden');
+    } catch (e) {
+      console.error('Failed to load public project:', e);
+    }
   },
 
   // --- API Keys modal ---

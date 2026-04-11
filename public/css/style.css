@@ -899,24 +899,21 @@ input, select, textarea, button {
   color: var(--text-tertiary);
 }
 
-/* Disabled header when not authenticated */
-.disabled-header {
-  pointer-events: none;
-  opacity: 0.5;
+/* Header login button */
+.btn-header-login {
+  padding: 6px 16px !important;
+  font-size: 13px !important;
+  border-radius: var(--radius-md) !important;
 }
-.disabled-header .btn-google,
-.disabled-header a[href="/auth/google"] {
-  pointer-events: auto;
-}
+.btn-header-login.hidden { display: none !important; }
 
-/* Login overlay on map area */
-#map-overlay-login {
-  background: var(--bg-primary);
-  z-index: 10;
+/* Public Leaflet map */
+#public-map {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
 }
-#map-overlay-login .btn-google {
-  pointer-events: auto;
-  cursor: pointer;
+#public-map.hidden { display: none; }
 }
 
 /* Map controls */

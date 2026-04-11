@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const DB_PATH = path.join(__dirname, '..', 'data', 'dsip.db');
-const DB_VERSION = 3; // Increment when schema changes — triggers "reset needed" warning in admin
+const DB_VERSION = 4; // Increment when schema changes — triggers "reset needed" warning in admin
 let db = null;
 let SQL = null;
 
@@ -188,6 +188,7 @@ function createTables() {
       description TEXT DEFAULT '',
       avatar_index INTEGER DEFAULT 0,
       icon_type TEXT DEFAULT 'default',
+      is_public INTEGER DEFAULT 0,
       center_lat REAL DEFAULT 45.7983,
       center_lng REAL DEFAULT 24.1256,
       default_zoom INTEGER DEFAULT 14,
@@ -196,6 +197,9 @@ function createTables() {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
+
+  // Migration: add is_public column if missing (for existing DBs upgrading from v3)
+  try { db.run('ALTER TABLE projects ADD COLUMN is_public INTEGER DEFAULT 0'); } catch {}
 
   db.run(`
     CREATE TABLE IF NOT EXISTS project_members (
@@ -388,15 +392,15 @@ function seed() {
   const SIBIU_LAT = 45.7983;
   const SIBIU_LNG = 24.1256;
 
-  // 2. Create "Pompieri Sibiu" project
-  run('INSERT INTO projects (user_id, name, description, avatar_index, icon_type, center_lat, center_lng, default_zoom) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [uid, 'Pompieri Sibiu', 'Hidranți și echipamente PSI în municipiul Sibiu', 5, 'hydrant', SIBIU_LAT, SIBIU_LNG, 14]);
+  // 2. Create "Pompieri Sibiu" project (PUBLIC by default for demo)
+  run('INSERT INTO projects (user_id, name, description, avatar_index, icon_type, is_public, center_lat, center_lng, default_zoom) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [uid, 'Pompieri Sibiu', 'Hidranți și echipamente PSI în municipiul Sibiu', 5, 'hydrant', 1, SIBIU_LAT, SIBIU_LNG, 14]);
   const fireProject = get("SELECT id FROM projects WHERE name = 'Pompieri Sibiu'");
   const fpId = fireProject.id;
 
-  // 3. Create "Semne Rutiere Sibiu" project
-  run('INSERT INTO projects (user_id, name, description, avatar_index, icon_type, center_lat, center_lng, default_zoom) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [uid, 'Semne Rutiere Sibiu', 'Semne de circulație în municipiul Sibiu', 4, 'road_sign', SIBIU_LAT, SIBIU_LNG, 14]);
+  // 3. Create "Semne Rutiere Sibiu" project (private)
+  run('INSERT INTO projects (user_id, name, description, avatar_index, icon_type, is_public, center_lat, center_lng, default_zoom) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [uid, 'Semne Rutiere Sibiu', 'Semne de circulație în municipiul Sibiu', 4, 'road_sign', 0, SIBIU_LAT, SIBIU_LNG, 14]);
   const signProject = get("SELECT id FROM projects WHERE name = 'Semne Rutiere Sibiu'");
   const spId = signProject.id;
 
@@ -405,6 +409,17 @@ function seed() {
     [fpId, 'bogdansarac@gmail.com', uid, 'admin', uid]);
   run('INSERT INTO project_members (project_id, user_email, user_id, role, invited_by) VALUES (?, ?, ?, ?, ?)',
     [spId, 'bogdansarac@gmail.com', uid, 'admin', uid]);
+
+  // 3b. Create second user: vivianasarac@gmail.com (admin on Pompieri, viewer on Semne)
+  run(`INSERT INTO users (google_id, email, name, avatar, role, is_approved, subscription_until, ad_free_until)
+       VALUES ('seed_viviana', 'vivianasarac@gmail.com', 'Viviana Sarac', '', 'user', 1, '2099-12-31', '2099-12-31')`);
+  const viviana = get('SELECT id FROM users WHERE email = ?', ['vivianasarac@gmail.com']);
+  if (viviana) {
+    run('INSERT INTO project_members (project_id, user_email, user_id, role, invited_by) VALUES (?, ?, ?, ?, ?)',
+      [fpId, 'vivianasarac@gmail.com', viviana.id, 'admin', uid]);
+    run('INSERT INTO project_members (project_id, user_email, user_id, role, invited_by) VALUES (?, ?, ?, ?, ?)',
+      [spId, 'vivianasarac@gmail.com', viviana.id, 'viewer', uid]);
+  }
 
   // ---- Sibiu area coordinates ----
   // Center: 45.7983, 24.1256

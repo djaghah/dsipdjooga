@@ -81,6 +81,26 @@ async function start() {
   app.use('/api/marker-types', require('./server/routes/markerTypes'));
   app.use('/api/admin', require('./server/routes/admin'));
 
+  // ============ PUBLIC PROJECT ENDPOINTS (no auth) ============
+
+  // List public projects (for unauthenticated users)
+  app.get('/api/public-projects', (req, res) => {
+    const projects = db.all('SELECT id, name, description, avatar_index, icon_type, is_public, center_lat, center_lng, default_zoom FROM projects WHERE is_public = 1 ORDER BY name');
+    const enriched = projects.map(p => {
+      const count = db.get('SELECT COUNT(*) as count FROM markers WHERE project_id = ?', [p.id]);
+      return { ...p, marker_count: count?.count || 0 };
+    });
+    res.json(enriched);
+  });
+
+  // Get markers for a public project (no auth, read-only)
+  app.get('/api/public-projects/:id/markers', (req, res) => {
+    const project = db.get('SELECT * FROM projects WHERE id = ? AND is_public = 1', [req.params.id]);
+    if (!project) return res.status(404).json({ error: 'Project not found or not public' });
+    const markers = db.all('SELECT id, lat, lng, title, icon_type, icon_index, status, condition, observations, responsible, cost, currency FROM markers WHERE project_id = ?', [project.id]);
+    res.json({ project, markers });
+  });
+
   // Contact request (public - for unapproved/expired users)
   app.post('/api/contact-request', (req, res) => {
     const { email, name, message } = req.body;

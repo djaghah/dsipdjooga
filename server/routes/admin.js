@@ -98,6 +98,20 @@ router.put('/settings', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+// ============ PROJECT VISIBILITY ============
+
+// Toggle project public/private (super admin only)
+router.put('/projects/:id/public', requireAdmin, (req, res) => {
+  if (req.user.email !== 'bogdansarac@gmail.com') {
+    return res.status(403).json({ error: 'Only super admin' });
+  }
+  const project = db.get('SELECT * FROM projects WHERE id = ?', [req.params.id]);
+  if (!project) return res.status(404).json({ error: 'Not found' });
+  const newState = project.is_public ? 0 : 1;
+  db.run('UPDATE projects SET is_public = ? WHERE id = ?', [newState, project.id]);
+  res.json({ ok: true, is_public: newState });
+});
+
 // ============ QUOTA MANAGEMENT ============
 
 // Reset daily quota for a user (or all users)
