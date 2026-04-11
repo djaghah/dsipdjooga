@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const DB_PATH = path.join(__dirname, '..', 'data', 'dsip.db');
-const DB_VERSION = 4; // Increment when schema changes — triggers "reset needed" warning in admin
+const DB_VERSION = 5; // Increment when schema changes — triggers "reset needed" warning in admin
 let db = null;
 let SQL = null;
 
@@ -87,12 +87,16 @@ function createTables() {
       theme TEXT DEFAULT 'light',
       role TEXT DEFAULT 'user',
       is_approved INTEGER DEFAULT 0,
+      allow_google_api INTEGER DEFAULT 0,
       subscription_until TEXT,
       ad_free_until TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Migration: add allow_google_api if missing
+  try { db.run('ALTER TABLE users ADD COLUMN allow_google_api INTEGER DEFAULT 0'); } catch {}
 
   db.run(`
     CREATE TABLE IF NOT EXISTS contact_requests (

@@ -97,16 +97,18 @@ window.AdminPanel = {
 
   // ============ ADS ============
   isAdFree() {
-    if (App.user.role === 'admin' && this.viewingAsAdmin) return true;
-    if (App.user.ad_free_until && new Date(App.user.ad_free_until) > new Date()) return true;
+    // Only super admin viewing as ADMIN is ad-free
+    if (App.user?.role === 'admin' && this.viewingAsAdmin && App.user?.email === 'bogdansarac@gmail.com') return true;
+    if (App.user?.ad_free_until && new Date(App.user.ad_free_until) > new Date()) return true;
     return false;
   },
 
   applyAdVisibility() {
     const adFree = this.isAdFree();
     const sidebar = document.getElementById('ads-sidebar');
-    // Only show ads when: not ad-free AND a project with markers is loaded (real content)
-    const hasContent = App.currentProject && Markers?.list?.length > 0;
+    // Show ads for all users with content, except ad-free
+    // Content = either authenticated with project OR viewing public project
+    const hasContent = App.currentProject || App._leafletMap;
     if (adFree || !hasContent) {
       sidebar.classList.add('hidden');
       this.stopSplashTimer();
@@ -115,11 +117,10 @@ window.AdminPanel = {
       this.initAds();
       this.startSplashTimer();
     }
-    // Notify map to resize after ads sidebar toggled
+    // Notify map to resize
     setTimeout(() => {
-      if (MapManager.map && window.google?.maps) {
-        google.maps.event.trigger(MapManager.map, 'resize');
-      }
+      if (MapManager.map && window.google?.maps) google.maps.event.trigger(MapManager.map, 'resize');
+      if (App._leafletMap) App._leafletMap.invalidateSize();
     }, 150);
   },
 
@@ -392,6 +393,9 @@ window.AdminPanel = {
             <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer" title="Activ/Inactiv">
               <input type="checkbox" class="usr-approved" data-id="${u.id}" ${u.is_approved ? 'checked' : ''}> Activ
             </label>
+            <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer" title="Allow Google Maps API">
+              <input type="checkbox" class="usr-google-api" data-id="${u.id}" ${u.allow_google_api ? 'checked' : ''}> <span class="material-icons-round" style="font-size:14px">map</span>API
+            </label>
             <select class="usr-role filter-select" data-id="${u.id}" style="width:80px;padding:2px 6px;font-size:11px">
               <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
               <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
@@ -433,12 +437,14 @@ window.AdminPanel = {
         const id = btn.dataset.id;
         const row = container.querySelector(`.admin-user-row[data-id="${id}"]`);
         const approvedCb = row.querySelector('.usr-approved');
+        const googleApiCb = row.querySelector('.usr-google-api');
         const roleSel = row.querySelector('.usr-role');
         await fetch(`/api/admin/users/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             is_approved: approvedCb ? (approvedCb.checked ? 1 : 0) : 1,
+            allow_google_api: googleApiCb ? (googleApiCb.checked ? 1 : 0) : undefined,
             role: roleSel ? roleSel.value : undefined,
             subscription_until: row.querySelector('.usr-sub').value || null,
             ad_free_until: row.querySelector('.usr-adfree').value || null

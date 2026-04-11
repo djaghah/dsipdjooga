@@ -32,7 +32,7 @@ window.App = {
     }
   },
 
-  showLogin() {
+  async showLogin() {
     // Dashboard layout visible — public projects viewable with Leaflet (free, no API calls)
     document.getElementById('view-dashboard').classList.add('active');
     document.getElementById('view-login').classList.remove('active');
@@ -46,6 +46,12 @@ window.App = {
     // Hide sidebar search/filters (no geocoding for public)
     document.getElementById('map-search-box').classList.add('hidden');
     document.getElementById('coord-input').classList.add('hidden');
+    // Load public settings for ads (even without auth)
+    try {
+      const r = await fetch('/api/public-settings');
+      if (r.ok) AdminPanel.settings = await r.json();
+    } catch {}
+
     // Load public projects
     this.loadPublicProjects();
   },
@@ -113,8 +119,20 @@ window.App = {
     // Load projects
     Projects.loadAll();
 
-    // Init map
-    MapManager.init();
+    // Init map — Google Maps only if user has own API keys, otherwise Leaflet/OSM
+    if (this.config.useGoogleMaps) {
+      document.getElementById('map').classList.remove('hidden');
+      document.getElementById('public-map').classList.add('hidden');
+      MapManager.init();
+    } else {
+      // Use Leaflet for this user too (no Google API keys)
+      document.getElementById('map').classList.add('hidden');
+      document.getElementById('public-map').classList.remove('hidden');
+      this._useLeaflet = true;
+      // Hide Google-only controls
+      document.getElementById('map-search-box').classList.add('hidden');
+      document.getElementById('btn-toggle-poi').classList.add('hidden');
+    }
 
     // Update usage
     this.updateMapsUsage();
@@ -515,27 +533,8 @@ window.App = {
       if (!res.ok) return;
       const data = await res.json();
 
-      // Initialize Leaflet map (free, no API key)
-      if (this._leafletMap) { this._leafletMap.remove(); this._leafletMap = null; }
-      this._leafletMap = L.map('public-map').setView([project.center_lat || 45.7983, project.center_lng || 24.1256], project.default_zoom || 14);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 19
-      }).addTo(this._leafletMap);
-
-      // Add markers with custom SVG icons (matching Google Maps view)
-      this._leafletMarkers = [];
       const markerList = data.markers || [];
-      markerList.forEach(m => {
-        const svg = Icons.getIconByType(m.icon_type, m.icon_index);
-        const iconHtml = svg && svg.includes('<svg')
-          ? L.divIcon({ html: `<div style="width:36px;height:36px">${svg}</div>`, iconSize: [36, 36], iconAnchor: [18, 18], className: 'leaflet-marker-svg' })
-          : undefined;
-        const marker = L.marker([m.lat, m.lng], iconHtml ? { icon: iconHtml } : {}).addTo(this._leafletMap);
-        const title = m.title || Icons.getIconName(m.icon_type, m.icon_index);
-        marker.bindPopup(`<div style="min-width:160px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:28px;height:28px;flex-shrink:0">${svg || ''}</div><strong>${title}</strong></div><div style="font-size:12px;color:#666">${m.status || ''} · ${m.condition || ''}</div>${m.responsible ? `<div style="font-size:12px;color:#666">${m.responsible}</div>` : ''}${m.observations ? `<div style="font-size:11px;color:#999;margin-top:4px">${m.observations}</div>` : ''}</div>`);
-        this._leafletMarkers.push(marker);
-      });
+      this._displayLeafletMarkers(project, markerList);
 
       // Render sidebar marker list (same CSS classes as authenticated view)
       const listEl = document.getElementById('marker-list');
@@ -581,9 +580,37 @@ window.App = {
 
       // Disable sidebar controls that need auth
       document.getElementById('btn-export-pdf').classList.add('hidden');
+
+      // Show ads (public project = real content)
+      this.currentProject = project;
+      AdminPanel.applyAdVisibility();
     } catch (e) {
       console.error('Failed to load public project:', e);
     }
+  },
+
+  // --- Leaflet marker display (shared by public view and auth users without Google API) ---
+  _displayLeafletMarkers(project, markerList) {
+    if (this._leafletMap) { this._leafletMap.remove(); this._leafletMap = null; }
+    this._leafletMap = L.map('public-map').setView([project.center_lat || 45.7983, project.center_lng || 24.1256], project.default_zoom || 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+    }).addTo(this._leafletMap);
+
+    this._leafletMarkers = [];
+    (markerList || []).forEach(m => {
+      const svg = Icons.getIconByType(m.icon_type, m.icon_index);
+      const iconHtml = svg && svg.includes('<svg')
+        ? L.divIcon({ html: `<div style="width:36px;height:36px">${svg}</div>`, iconSize: [36, 36], iconAnchor: [18, 18], className: 'leaflet-marker-svg' })
+        : undefined;
+      const lm = L.marker([m.lat, m.lng], iconHtml ? { icon: iconHtml } : {}).addTo(this._leafletMap);
+      const title = m.title || Icons.getIconName(m.icon_type, m.icon_index);
+      lm.bindPopup(`<div style="min-width:160px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:28px;height:28px;flex-shrink:0">${svg || ''}</div><strong>${title}</strong></div><div style="font-size:12px;color:#666">${m.status || ''} · ${m.condition || ''}</div>${m.responsible ? `<div style="font-size:12px;color:#666">${m.responsible}</div>` : ''}</div>`);
+      this._leafletMarkers.push(lm);
+    });
+
+    // Resize after ads sidebar settles
+    setTimeout(() => { if (this._leafletMap) this._leafletMap.invalidateSize(); }, 300);
   },
 
   // --- API Keys modal ---
@@ -711,15 +738,18 @@ window.App = {
     // Re-evaluate ad visibility now that we have content
     AdminPanel.applyAdVisibility();
 
-    // Navigate map to project center AFTER layout has settled
-    // (ads sidebar may change map container size — ResizeObserver handles resize,
-    //  but we need a small delay for layout to complete)
-    setTimeout(() => {
-      if (MapManager.map && project.center_lat && project.center_lng) {
-        MapManager.map.setCenter({ lat: project.center_lat, lng: project.center_lng });
-        MapManager.map.setZoom(project.default_zoom || 14);
-      }
-    }, 250);
+    // Navigate map — Google Maps or Leaflet depending on config
+    if (this._useLeaflet) {
+      // Leaflet mode for authenticated users without Google API keys
+      this._displayLeafletMarkers(project, Markers.list);
+    } else {
+      setTimeout(() => {
+        if (MapManager.map && project.center_lat && project.center_lng) {
+          MapManager.map.setCenter({ lat: project.center_lat, lng: project.center_lng });
+          MapManager.map.setZoom(project.default_zoom || 14);
+        }
+      }, 250);
+    }
 
     // Update dropdown active state
     document.querySelectorAll('.project-item').forEach(item => {

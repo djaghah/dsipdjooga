@@ -148,31 +148,31 @@ async function start() {
     res.json(obj);
   });
 
-  // API config endpoint — API key ONLY for authenticated users
+  // API config endpoint — Google Maps key only if user has allow_google_api + own keys
   app.get('/api/config', (req, res) => {
-    // Unauthenticated users get no API key (public view uses Leaflet/OSM, zero cost)
-    if (!req.isAuthenticated()) {
-      return res.json({ mapsApiKey: '', isCustomKey: false, mapsQuotaDaily: 0 });
+    // Default: Leaflet/OSM for everyone (zero cost)
+    const base = { mapsApiKey: '', isCustomKey: false, useGoogleMaps: false, allowGoogleApi: false };
+
+    if (!req.isAuthenticated()) return res.json(base);
+
+    // Check if user is allowed to use Google API AND has own keys
+    const user = db.get('SELECT allow_google_api FROM users WHERE id = ?', [req.user.id]);
+    const allowed = !!(user?.allow_google_api) || req.user.role === 'admin';
+    base.allowGoogleApi = allowed;
+
+    if (allowed) {
+      const userKey = db.get(
+        'SELECT maps_api_key, is_active FROM user_api_keys WHERE user_id = ? AND is_active = 1',
+        [req.user.id]
+      );
+      if (userKey?.maps_api_key) {
+        base.mapsApiKey = userKey.maps_api_key;
+        base.isCustomKey = true;
+        base.useGoogleMaps = true;
+      }
     }
 
-    let mapsApiKey = process.env.GOOGLE_MAPS_API_KEY || '';
-    let isCustomKey = false;
-
-    // If user has custom API key active, use theirs
-    const userKey = db.get(
-      'SELECT maps_api_key, is_active FROM user_api_keys WHERE user_id = ? AND is_active = 1',
-      [req.user.id]
-    );
-    if (userKey?.maps_api_key) {
-      mapsApiKey = userKey.maps_api_key;
-      isCustomKey = true;
-    }
-
-    res.json({
-      mapsApiKey,
-      isCustomKey,
-      mapsQuotaDaily: parseInt(process.env.GOOGLE_MAPS_DAILY_LIMIT) || 900
-    });
+    res.json(base);
   });
 
   // Helper: get effective daily/monthly limits for a user (including admin overrides)
