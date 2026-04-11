@@ -751,18 +751,26 @@
         </div>
       </div>
 
-      <!-- ADS SIDEBAR (right of map, hidden for ad-free/admin) -->
+      <!-- ADS SIDEBAR (right of map) -->
       <aside id="ads-sidebar" class="ads-sidebar hidden">
-        <div id="promo-video-area" class="promo-video-area hidden">
-          <p style="font-size:11px;color:var(--text-tertiary);margin-bottom:6px" data-i18n="ads.watchSubscribe">Watch and subscribe</p>
-          <a id="promo-video-link" href="#" target="_blank" class="promo-video-link">
-            <span class="material-icons-round">play_circle</span> Video
-          </a>
+        <div class="ads-sidebar-header">
+          <span class="material-icons-round" style="font-size:16px">smart_display</span>
+          <span data-i18n="ads.watchSubscribe">Watch and subscribe</span>
+          <button id="btn-collapse-ads" class="btn-icon ads-collapse-btn hidden" title="Minimize">
+            <span class="material-icons-round">chevron_right</span>
+          </button>
         </div>
-        <div id="ad-slot-sidebar" class="ad-slot">
-          <ins class="adsbygoogle" style="display:block" data-ad-format="auto" data-full-width-responsive="true"></ins>
+        <div id="ads-sidebar-body" class="ads-sidebar-body">
+          <div id="promo-video-area" class="promo-video-area"></div>
+          <div id="ad-slot-sidebar" class="ad-slot">
+            <ins class="adsbygoogle" style="display:block" data-ad-format="auto" data-full-width-responsive="true"></ins>
+          </div>
         </div>
       </aside>
+      <!-- Collapsed ads expand button -->
+      <button id="btn-expand-ads" class="btn-expand-ads hidden">
+        <span class="material-icons-round">chevron_left</span>
+      </button>
     </main>
 
     <!-- AD SPLASH SCREEN (overlay modal with video reward) -->

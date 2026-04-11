@@ -106,22 +106,72 @@ window.AdminPanel = {
   applyAdVisibility() {
     const adFree = this.isAdFree();
     const sidebar = document.getElementById('ads-sidebar');
-    // Show ads for all users with content, except ad-free
-    // Content = either authenticated with project OR viewing public project
+    const collapseBtn = document.getElementById('btn-collapse-ads');
+    const expandBtn = document.getElementById('btn-expand-ads');
     const hasContent = App.currentProject || App._leafletMap;
-    if (adFree || !hasContent) {
+    const isLoggedIn = !!App.user;
+
+    if (!hasContent) {
+      // No content at all — hide everything
       sidebar.classList.add('hidden');
+      expandBtn.classList.add('hidden');
       this.stopSplashTimer();
+    } else if (adFree) {
+      // Ad-free user — sidebar collapsed by default, CAN expand if they want
+      sidebar.classList.add('hidden');
+      sidebar.classList.add('collapsed');
+      expandBtn.classList.remove('hidden');
+      collapseBtn.classList.remove('hidden');
+      this.stopSplashTimer();
+      this._initAdsToggle(true);
     } else {
+      // Not ad-free — sidebar always open, collapse button hidden (can't minimize)
       sidebar.classList.remove('hidden');
+      sidebar.classList.remove('collapsed');
+      expandBtn.classList.add('hidden');
+      // Can minimize only if logged in (not anonymous)
+      if (isLoggedIn) {
+        collapseBtn.classList.remove('hidden');
+        this._initAdsToggle(false);
+      } else {
+        collapseBtn.classList.add('hidden');
+      }
       this.initAds();
       this.startSplashTimer();
     }
-    // Notify map to resize
+    // Notify maps to resize
     setTimeout(() => {
       if (MapManager.map && window.google?.maps) google.maps.event.trigger(MapManager.map, 'resize');
       if (App._leafletMap) App._leafletMap.invalidateSize();
     }, 150);
+  },
+
+  _adsToggleWired: false,
+  _initAdsToggle(startCollapsed) {
+    if (this._adsToggleWired) return;
+    this._adsToggleWired = true;
+    const sidebar = document.getElementById('ads-sidebar');
+    const collapseBtn = document.getElementById('btn-collapse-ads');
+    const expandBtn = document.getElementById('btn-expand-ads');
+
+    collapseBtn.addEventListener('click', () => {
+      sidebar.classList.add('hidden');
+      expandBtn.classList.remove('hidden');
+      setTimeout(() => {
+        if (MapManager.map && window.google?.maps) google.maps.event.trigger(MapManager.map, 'resize');
+        if (App._leafletMap) App._leafletMap.invalidateSize();
+      }, 150);
+    });
+
+    expandBtn.addEventListener('click', () => {
+      sidebar.classList.remove('hidden');
+      expandBtn.classList.add('hidden');
+      this.initAds();
+      setTimeout(() => {
+        if (MapManager.map && window.google?.maps) google.maps.event.trigger(MapManager.map, 'resize');
+        if (App._leafletMap) App._leafletMap.invalidateSize();
+      }, 150);
+    });
   },
 
   initAds() {
