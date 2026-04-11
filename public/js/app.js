@@ -658,8 +658,15 @@ window.App = {
     if (this._leafletMap) { this._leafletMap.remove(); this._leafletMap = null; }
     this._leafletMap = L.map('public-map', {
       zoomControl: true,
-      doubleClickZoom: false  // We handle double-click ourselves (admin: create marker)
+      doubleClickZoom: false,
+      scrollWheelZoom: true,
+      touchZoom: true,
+      dragging: true
     }).setView([project.center_lat || 45.7983, project.center_lng || 24.1256], project.default_zoom || 14);
+
+    // Prevent wheel events from bubbling to page (causes page zoom)
+    const pubMapEl = document.getElementById('public-map');
+    pubMapEl.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19,
