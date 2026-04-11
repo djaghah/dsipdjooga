@@ -46,11 +46,13 @@ window.App = {
     // Hide sidebar search/filters (no geocoding for public)
     document.getElementById('map-search-box').classList.add('hidden');
     document.getElementById('coord-input').classList.add('hidden');
-    // Load public settings for ads (even without auth)
+    // Load public settings and show ads immediately
     try {
       const r = await fetch('/api/public-settings');
       if (r.ok) AdminPanel.settings = await r.json();
     } catch {}
+    AdminPanel.applyAdVisibility();
+    AdminPanel.initAds();
 
     // Load public projects
     this.loadPublicProjects();
@@ -126,6 +128,10 @@ window.App = {
 
     // Init map — determine provider based on config
     this._canUseGoogle = this.config.useGoogleMaps && !!this.config.mapsApiKey;
+    // Hide usage bar if no Google API (OSM users don't consume API)
+    if (!this._canUseGoogle) {
+      document.querySelector('.maps-usage')?.classList.add('hidden');
+    }
     if (this._canUseGoogle) {
       // Show toggle button (user can switch between Google and OSM)
       const toggleBtn = document.getElementById('btn-toggle-map-provider');
@@ -261,12 +267,14 @@ window.App = {
     const poiBtn = document.getElementById('btn-toggle-poi');
     const searchBox = document.getElementById('map-search-box');
 
+    const usageBar = document.querySelector('.maps-usage');
     if (provider === 'google') {
       document.getElementById('map').classList.remove('hidden');
       document.getElementById('public-map').classList.add('hidden');
       if (label) label.textContent = 'Google';
       if (poiBtn) poiBtn.classList.remove('hidden');
       if (searchBox) searchBox.classList.remove('hidden');
+      if (usageBar) usageBar.classList.remove('hidden');
       if (!MapManager.mapLoaded) MapManager.init();
     } else {
       document.getElementById('map').classList.add('hidden');
@@ -274,6 +282,7 @@ window.App = {
       if (label) label.textContent = 'OSM';
       if (poiBtn) poiBtn.classList.add('hidden');
       if (searchBox) searchBox.classList.add('hidden');
+      if (usageBar) usageBar.classList.add('hidden');
     }
 
     // Re-render current project markers on the active map

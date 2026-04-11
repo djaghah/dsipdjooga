@@ -108,34 +108,31 @@ window.AdminPanel = {
     const sidebar = document.getElementById('ads-sidebar');
     const collapseBtn = document.getElementById('btn-collapse-ads');
     const expandBtn = document.getElementById('btn-expand-ads');
-    const hasContent = App.currentProject || App._leafletMap;
-    const isLoggedIn = !!App.user;
 
-    if (!hasContent) {
-      // No content at all — hide everything
+    // Check if user has a VALID ad_free_until date in the future
+    const hasValidAdFree = App.user?.ad_free_until && new Date(App.user.ad_free_until) > new Date();
+    // Super admin with ADMIN toggle
+    const isSuperAdminMode = App.user?.role === 'admin' && this.viewingAsAdmin && App.user?.email === 'bogdansarac@gmail.com';
+
+    if (isSuperAdminMode) {
+      // Super admin ADMIN mode — collapsed, can expand
       sidebar.classList.add('hidden');
-      expandBtn.classList.add('hidden');
-      this.stopSplashTimer();
-    } else if (adFree) {
-      // Ad-free user — sidebar collapsed by default, CAN expand if they want
-      sidebar.classList.add('hidden');
-      sidebar.classList.add('collapsed');
       expandBtn.classList.remove('hidden');
       collapseBtn.classList.remove('hidden');
       this.stopSplashTimer();
-      this._initAdsToggle(true);
+      this._initAdsToggle();
+    } else if (hasValidAdFree) {
+      // User has ad-free time remaining — collapsed, CAN expand
+      sidebar.classList.add('hidden');
+      expandBtn.classList.remove('hidden');
+      collapseBtn.classList.remove('hidden');
+      this.stopSplashTimer();
+      this._initAdsToggle();
     } else {
-      // Not ad-free — sidebar always open, collapse button hidden (can't minimize)
+      // No ad-free (or expired) — sidebar ALWAYS open, CANNOT minimize
       sidebar.classList.remove('hidden');
-      sidebar.classList.remove('collapsed');
       expandBtn.classList.add('hidden');
-      // Can minimize only if logged in (not anonymous)
-      if (isLoggedIn) {
-        collapseBtn.classList.remove('hidden');
-        this._initAdsToggle(false);
-      } else {
-        collapseBtn.classList.add('hidden');
-      }
+      collapseBtn.classList.add('hidden');
       this.initAds();
       this.startSplashTimer();
     }
@@ -147,7 +144,7 @@ window.AdminPanel = {
   },
 
   _adsToggleWired: false,
-  _initAdsToggle(startCollapsed) {
+  _initAdsToggle() {
     if (this._adsToggleWired) return;
     this._adsToggleWired = true;
     const sidebar = document.getElementById('ads-sidebar');
