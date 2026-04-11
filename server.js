@@ -20,6 +20,9 @@ const IS_PROD = process.env.NODE_ENV === 'production' || process.env.BASE_URL?.s
 });
 
 async function start() {
+  // Trust nginx reverse proxy (needed for secure cookies behind SSL proxy)
+  if (IS_PROD) app.set('trust proxy', 1);
+
   // Initialize database (async for sql.js)
   await db.init();
 
