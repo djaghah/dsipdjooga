@@ -140,7 +140,7 @@ window.AdminPanel = {
     setTimeout(() => {
       if (MapManager.map && window.google?.maps) google.maps.event.trigger(MapManager.map, 'resize');
       if (App._leafletMap) App._leafletMap.invalidateSize();
-    }, 150);
+    }, 300);
   },
 
   _adsToggleWired: false,

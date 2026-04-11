@@ -313,8 +313,9 @@ input, select, textarea, button {
   align-items: center;
   padding: 0 16px;
   gap: 16px;
-  z-index: 100;
-  position: relative;
+  z-index: 1000;
+  position: fixed;
+  top: 0; left: 0; right: 0;
   flex-shrink: 0;
   transition: background var(--transition), border-color var(--transition);
 }
@@ -627,22 +628,26 @@ input, select, textarea, button {
    MAIN CONTENT AREA
    ============================ */
 .app-main {
-  flex: 1;
+  position: fixed;
+  top: var(--header-height);
+  left: 0; right: 0; bottom: 0;
   display: flex;
   overflow: hidden;
-  position: relative;
 }
 
 /* ============================
    SIDEBAR
    ============================ */
 .sidebar {
-  width: var(--sidebar-width);
+  width: 25%;
+  min-width: 240px;
+  max-width: 360px;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   min-height: 0;
+  padding-bottom: 8px;
   transition: width var(--transition-slow), border-color var(--transition), background var(--transition);
   flex-shrink: 0;
   z-index: 10;
@@ -859,6 +864,7 @@ input, select, textarea, button {
   position: relative;
   overflow: hidden;
   padding: 6px;
+  padding-bottom: 8px;
   min-width: 0;
 }
 
@@ -871,10 +877,6 @@ input, select, textarea, button {
   transition: border-color var(--transition);
 }
 
-/* Main area — ensure proper spacing */
-.app-main {
-  gap: 0;
-}
 
 .map-overlay {
   position: absolute;
@@ -1941,6 +1943,7 @@ textarea.form-input { resize: vertical; }
   flex-direction: column;
   flex-shrink: 0;
   overflow-y: auto;
+  padding-bottom: 8px;
   transition: background var(--transition), border-color var(--transition);
 }
 .ads-sidebar.hidden { display: none; }
@@ -1957,9 +1960,9 @@ textarea.form-input { resize: vertical; }
 .ads-sidebar-body { padding: 12px; flex: 1; overflow-y: auto; }
 .promo-video-area { margin-bottom: 12px; border-radius: var(--radius-md); overflow: hidden; }
 .btn-expand-ads {
-  position: absolute; right: 0; top: 50%;
+  position: fixed; right: 0; top: 50%;
   transform: translateY(-50%);
-  z-index: 5;
+  z-index: 500;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-right: none;
