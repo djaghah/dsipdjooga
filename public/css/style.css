@@ -914,6 +914,8 @@ input, select, textarea, button {
   z-index: 1;
 }
 #public-map.hidden { display: none; }
+.leaflet-marker-svg { background: none !important; border: none !important; }
+.leaflet-marker-svg svg { width: 100%; height: 100%; }
 }
 
 /* Map controls */

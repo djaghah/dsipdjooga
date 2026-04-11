@@ -523,34 +523,53 @@ window.App = {
         maxZoom: 19
       }).addTo(this._leafletMap);
 
-      // Add markers
+      // Add markers with custom SVG icons (matching Google Maps view)
       this._leafletMarkers = [];
       const markerList = data.markers || [];
       markerList.forEach(m => {
-        const marker = L.marker([m.lat, m.lng]).addTo(this._leafletMap);
-        marker.bindPopup(`<strong>${m.title || 'Marker'}</strong><br>${m.status || ''} · ${m.condition || ''}`);
+        const svg = Icons.getIconByType(m.icon_type, m.icon_index);
+        const iconHtml = svg && svg.includes('<svg')
+          ? L.divIcon({ html: `<div style="width:36px;height:36px">${svg}</div>`, iconSize: [36, 36], iconAnchor: [18, 18], className: 'leaflet-marker-svg' })
+          : undefined;
+        const marker = L.marker([m.lat, m.lng], iconHtml ? { icon: iconHtml } : {}).addTo(this._leafletMap);
+        const title = m.title || Icons.getIconName(m.icon_type, m.icon_index);
+        marker.bindPopup(`<div style="min-width:160px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:28px;height:28px;flex-shrink:0">${svg || ''}</div><strong>${title}</strong></div><div style="font-size:12px;color:#666">${m.status || ''} · ${m.condition || ''}</div>${m.responsible ? `<div style="font-size:12px;color:#666">${m.responsible}</div>` : ''}${m.observations ? `<div style="font-size:11px;color:#999;margin-top:4px">${m.observations}</div>` : ''}</div>`);
         this._leafletMarkers.push(marker);
       });
 
-      // Render sidebar marker list (read-only)
+      // Render sidebar marker list (same CSS classes as authenticated view)
       const listEl = document.getElementById('marker-list');
       if (markerList.length === 0) {
-        listEl.innerHTML = '<div class="empty-state"><span class="material-icons-round">place</span><p>No markers</p></div>';
+        listEl.innerHTML = `<div class="empty-state"><span class="material-icons-round">place</span><p>${I18n.t('sidebar.noMarkers')}</p></div>`;
       } else {
-        listEl.innerHTML = markerList.map(m => `
-          <div class="marker-item" data-lat="${m.lat}" data-lng="${m.lng}">
-            <div class="marker-item-icon">${Icons.getIconByType(m.icon_type, m.icon_index)}</div>
-            <div class="marker-item-info">
-              <div class="marker-item-title">${m.title || 'Marker'}</div>
-              <div class="marker-item-meta">${m.status || ''} · ${m.condition || ''}</div>
-            </div>
-          </div>`).join('');
+        listEl.innerHTML = markerList.map(m => {
+          const iconSvg = Icons.getIconByType(m.icon_type, m.icon_index) || '';
+          const iconName = m.title || Icons.getIconName(m.icon_type, m.icon_index);
+          return `
+            <div class="marker-card ${m.status === 'inactive' ? 'inactive' : ''}" data-lat="${m.lat}" data-lng="${m.lng}">
+              <div class="marker-card-icon">${iconSvg}</div>
+              <div class="marker-card-info">
+                <div class="marker-card-title">${iconName}</div>
+                <div class="marker-card-meta">
+                  <span class="marker-card-status-dot ${m.status || 'active'}"></span>
+                  <span>${m.lat.toFixed(4)}, ${m.lng.toFixed(4)}</span>
+                  ${m.responsible ? `<span>· ${m.responsible}</span>` : ''}
+                </div>
+              </div>
+            </div>`;
+        }).join('');
 
-        listEl.querySelectorAll('.marker-item').forEach(item => {
-          item.addEventListener('click', () => {
-            const lat = parseFloat(item.dataset.lat);
-            const lng = parseFloat(item.dataset.lng);
-            if (this._leafletMap) this._leafletMap.setView([lat, lng], 17);
+        listEl.querySelectorAll('.marker-card').forEach(card => {
+          card.addEventListener('click', () => {
+            const lat = parseFloat(card.dataset.lat);
+            const lng = parseFloat(card.dataset.lng);
+            if (this._leafletMap) {
+              this._leafletMap.setView([lat, lng], 17);
+              // Open the corresponding popup
+              this._leafletMarkers.forEach(lm => {
+                if (Math.abs(lm.getLatLng().lat - lat) < 0.00001) lm.openPopup();
+              });
+            }
           });
         });
       }
