@@ -656,7 +656,10 @@ window.App = {
   // --- Leaflet marker display (shared by public view and auth users without Google API) ---
   _displayLeafletMarkers(project, markerList) {
     if (this._leafletMap) { this._leafletMap.remove(); this._leafletMap = null; }
-    this._leafletMap = L.map('public-map', { zoomControl: true }).setView([project.center_lat || 45.7983, project.center_lng || 24.1256], project.default_zoom || 14);
+    this._leafletMap = L.map('public-map', {
+      zoomControl: true,
+      doubleClickZoom: false  // We handle double-click ourselves (admin: create marker)
+    }).setView([project.center_lat || 45.7983, project.center_lng || 24.1256], project.default_zoom || 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19,
@@ -675,6 +678,13 @@ window.App = {
       lm.bindPopup(`<div style="min-width:160px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:28px;height:28px;flex-shrink:0">${svg || ''}</div><strong>${title}</strong></div><div style="font-size:12px;color:#666">${m.status || ''} · ${m.condition || ''}</div>${m.responsible ? `<div style="font-size:12px;color:#666">${m.responsible}</div>` : ''}</div>`);
       this._leafletMarkers.push(lm);
     });
+
+    // Prevent Leaflet clicks from propagating to document (would close dropdowns/header)
+    const mapEl = document.getElementById('public-map');
+    if (mapEl) {
+      mapEl.addEventListener('click', (e) => e.stopPropagation());
+      mapEl.addEventListener('dblclick', (e) => e.stopPropagation());
+    }
 
     // Admin interactions on Leaflet (right-click + double-click to add markers)
     if (this.user && this.currentProjectRole === 'admin') {
@@ -698,10 +708,9 @@ window.App = {
         MapManager.buildContextMenuIcons(menu);
       });
 
-      // Double-click → quick add marker
+      // Double-click → quick add marker (zoom already disabled via doubleClickZoom:false)
       this._leafletMap.on('dblclick', (e) => {
         if (this.mode !== 'admin') return;
-        L.DomEvent.stopPropagation(e);
         Markers.openCreateModal(e.latlng.lat, e.latlng.lng);
       });
 
