@@ -14,7 +14,12 @@ window.Markers = {
       this.list = await res.json();
       this.applyAllFilters();
       this.updateStats();
-      MapManager.displayMarkers(this.list);
+      // Display on active map provider
+      if (App._useLeaflet && App.currentProject) {
+        App._displayLeafletMarkers(App.currentProject, this.list);
+      } else {
+        MapManager.displayMarkers(this.list);
+      }
     } catch (e) {
       console.error('Failed to load markers:', e);
     }

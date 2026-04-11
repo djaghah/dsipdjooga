@@ -676,6 +676,41 @@ window.App = {
       this._leafletMarkers.push(lm);
     });
 
+    // Admin interactions on Leaflet (right-click + double-click to add markers)
+    if (this.user && this.currentProjectRole === 'admin') {
+      // Right-click → open context menu (reuse Google Maps context menu)
+      this._leafletMap.on('contextmenu', (e) => {
+        if (this.mode !== 'admin') return;
+        const menu = document.getElementById('map-context-menu');
+        if (!menu) return;
+        const mapDiv = document.getElementById('map-container');
+        const rect = mapDiv.getBoundingClientRect();
+        let x = e.originalEvent.clientX - rect.left;
+        let y = e.originalEvent.clientY - rect.top;
+        if (x + 240 > rect.width) x = rect.width - 248;
+        if (y + 320 > rect.height) y = rect.height - 328;
+        if (x < 8) x = 8; if (y < 8) y = 8;
+        menu.style.left = x + 'px';
+        menu.style.top = y + 'px';
+        menu.dataset.lat = e.latlng.lat;
+        menu.dataset.lng = e.latlng.lng;
+        menu.classList.remove('hidden');
+        MapManager.buildContextMenuIcons(menu);
+      });
+
+      // Double-click → quick add marker
+      this._leafletMap.on('dblclick', (e) => {
+        if (this.mode !== 'admin') return;
+        L.DomEvent.stopPropagation(e);
+        Markers.openCreateModal(e.latlng.lat, e.latlng.lng);
+      });
+
+      // Click → close context menu
+      this._leafletMap.on('click', () => {
+        document.getElementById('map-context-menu')?.classList.add('hidden');
+      });
+    }
+
     // Resize after ads sidebar settles
     setTimeout(() => { if (this._leafletMap) this._leafletMap.invalidateSize(); }, 300);
   },
