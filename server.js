@@ -148,28 +148,37 @@ async function start() {
     res.json(obj);
   });
 
-  // API config endpoint — Google Maps key only if user has allow_google_api + own keys
+  // API config endpoint — Google Maps only if authorized + keys available
   app.get('/api/config', (req, res) => {
     // Default: Leaflet/OSM for everyone (zero cost)
-    const base = { mapsApiKey: '', isCustomKey: false, useGoogleMaps: false, allowGoogleApi: false };
+    const base = { mapsApiKey: '', useGoogleMaps: false, googleApiMode: 'none' };
 
     if (!req.isAuthenticated()) return res.json(base);
 
-    // Check if user is allowed to use Google API AND has own keys
-    const user = db.get('SELECT allow_google_api FROM users WHERE id = ?', [req.user.id]);
-    const allowed = !!(user?.allow_google_api) || req.user.role === 'admin';
-    base.allowGoogleApi = allowed;
+    const user = db.get('SELECT google_api_mode FROM users WHERE id = ?', [req.user.id]);
+    const mode = user?.google_api_mode || 'none';
+    base.googleApiMode = mode;
 
-    if (allowed) {
+    if (mode === 'system') {
+      // System keys — controlled by super admin
+      base.mapsApiKey = process.env.GOOGLE_MAPS_API_KEY || '';
+      base.useGoogleMaps = !!base.mapsApiKey;
+    } else if (mode === 'own') {
+      // User's own keys
       const userKey = db.get(
         'SELECT maps_api_key, is_active FROM user_api_keys WHERE user_id = ? AND is_active = 1',
         [req.user.id]
       );
       if (userKey?.maps_api_key) {
         base.mapsApiKey = userKey.maps_api_key;
-        base.isCustomKey = true;
         base.useGoogleMaps = true;
       }
+    }
+    // Super admin always gets system key if no mode set
+    if (req.user.role === 'admin' && !base.useGoogleMaps) {
+      base.mapsApiKey = process.env.GOOGLE_MAPS_API_KEY || '';
+      base.useGoogleMaps = !!base.mapsApiKey;
+      base.googleApiMode = 'system';
     }
 
     res.json(base);
@@ -208,16 +217,14 @@ async function start() {
     const today = new Date().toISOString().slice(0, 10);
     const monthStart = today.slice(0, 7) + '-01';
 
-    // Check if user has custom API key active (bypasses rate limits)
-    const userKey = db.get(
-      'SELECT is_active FROM user_api_keys WHERE user_id = ? AND is_active = 1',
-      [req.user.id]
-    );
-    const hasCustomKey = !!userKey;
-    const keySource = hasCustomKey ? 'custom' : 'system';
+    // Check user's Google API mode
+    const userData = db.get('SELECT google_api_mode FROM users WHERE id = ?', [req.user.id]);
+    const apiMode = userData?.google_api_mode || 'none';
+    const hasOwnKeys = apiMode === 'own';
+    const keySource = hasOwnKeys ? 'own' : 'system';
 
-    // Check rate limit (super admin and custom-key users bypass)
-    if (req.user.role !== 'admin' && !hasCustomKey) {
+    // Check rate limit: super admin bypasses, own-key users bypass (their billing)
+    if (req.user.role !== 'admin' && !hasOwnKeys) {
       const { dailyLimit, monthlyLimit } = getUserLimits(req.user.id);
 
       // Daily check
@@ -408,6 +415,78 @@ async function start() {
       [query.toLowerCase(), lat, lng, name || '', address || '']
     );
     res.json({ ok: true });
+  });
+
+  // ============ USER SELF-MANAGE QUOTA (only for own-key users) ============
+  app.post('/api/user-quota/reset-daily', (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+    const user = db.get('SELECT google_api_mode FROM users WHERE id = ?', [req.user.id]);
+    if (user?.google_api_mode !== 'own') return res.status(403).json({ error: 'Only available for own-key users' });
+
+    const today = new Date().toISOString().slice(0, 10);
+    const dailyDefault = parseInt(db.get("SELECT value FROM app_settings WHERE key = 'api_daily_limit_per_user'")?.value) || 10;
+    const todayTotal = db.get('SELECT SUM(count) as total FROM api_usage WHERE user_id = ? AND date = ?', [req.user.id, today]);
+    const used = todayTotal?.total || 0;
+    const newLimit = Math.max(dailyDefault, used + dailyDefault);
+
+    const existing = db.get('SELECT * FROM user_quota WHERE user_id = ?', [req.user.id]);
+    if (existing?.daily_limit_date === today) return res.json({ ok: true, message: 'Already reset today' });
+
+    if (existing) {
+      db.run('UPDATE user_quota SET daily_limit_override = ?, daily_limit_date = ? WHERE user_id = ?', [newLimit, today, req.user.id]);
+    } else {
+      db.run('INSERT INTO user_quota (user_id, daily_limit_override, daily_limit_date) VALUES (?, ?, ?)', [req.user.id, newLimit, today]);
+    }
+    res.json({ ok: true, newLimit });
+  });
+
+  app.post('/api/user-quota/reset-monthly', (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+    const user = db.get('SELECT google_api_mode FROM users WHERE id = ?', [req.user.id]);
+    if (user?.google_api_mode !== 'own') return res.status(403).json({ error: 'Only available for own-key users' });
+
+    const today = new Date().toISOString().slice(0, 10);
+    const thisMonth = today.slice(0, 7);
+    const monthStart = thisMonth + '-01';
+    const monthlyDefault = parseInt(db.get("SELECT value FROM app_settings WHERE key = 'api_monthly_limit_per_user'")?.value) || 300;
+    const monthTotal = db.get('SELECT SUM(count) as total FROM api_usage WHERE user_id = ? AND date >= ?', [req.user.id, monthStart]);
+    const used = monthTotal?.total || 0;
+    const newLimit = Math.max(monthlyDefault, used + monthlyDefault);
+
+    const existing = db.get('SELECT * FROM user_quota WHERE user_id = ?', [req.user.id]);
+    if (existing?.monthly_limit_period === thisMonth) return res.json({ ok: true, message: 'Already reset this month' });
+
+    if (existing) {
+      db.run('UPDATE user_quota SET monthly_limit_override = ?, monthly_limit_period = ? WHERE user_id = ?', [newLimit, thisMonth, req.user.id]);
+    } else {
+      db.run('INSERT INTO user_quota (user_id, monthly_limit_override, monthly_limit_period) VALUES (?, ?, ?)', [req.user.id, newLimit, thisMonth]);
+    }
+    res.json({ ok: true, newLimit });
+  });
+
+  // ============ VALIDATE API KEY (test if it works) ============
+  app.post('/api/user-keys/validate', async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+    const { maps_api_key } = req.body;
+    if (!maps_api_key || !maps_api_key.startsWith('AIza')) {
+      return res.json({ valid: false, message: 'Invalid key format' });
+    }
+    // Test the key by making a simple Geocoding API call
+    try {
+      const testUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=Sibiu&key=${encodeURIComponent(maps_api_key)}`;
+      const https = require('https');
+      const data = await new Promise((resolve, reject) => {
+        https.get(testUrl, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => resolve(d)); }).on('error', reject);
+      });
+      const result = JSON.parse(data);
+      if (result.status === 'OK' || result.status === 'ZERO_RESULTS') {
+        res.json({ valid: true, message: 'API key works!' });
+      } else {
+        res.json({ valid: false, message: `Google API error: ${result.status} — ${result.error_message || 'Check key restrictions'}` });
+      }
+    } catch (e) {
+      res.json({ valid: false, message: 'Could not validate: ' + e.message });
+    }
   });
 
   // ============ AD-FREE EXTENSION (video play reward) ============

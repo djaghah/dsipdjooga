@@ -119,19 +119,18 @@ window.App = {
     // Load projects
     Projects.loadAll();
 
-    // Init map — Google Maps only if user has own API keys, otherwise Leaflet/OSM
-    if (this.config.useGoogleMaps) {
-      document.getElementById('map').classList.remove('hidden');
-      document.getElementById('public-map').classList.add('hidden');
-      MapManager.init();
+    // Init map — determine provider based on config
+    this._canUseGoogle = this.config.useGoogleMaps && !!this.config.mapsApiKey;
+    if (this._canUseGoogle) {
+      // Show toggle button (user can switch between Google and OSM)
+      const toggleBtn = document.getElementById('btn-toggle-map-provider');
+      toggleBtn.classList.remove('hidden');
+      toggleBtn.addEventListener('click', () => this.toggleMapProvider());
+      // Start with Google Maps
+      this.setMapProvider('google');
     } else {
-      // Use Leaflet for this user too (no Google API keys)
-      document.getElementById('map').classList.add('hidden');
-      document.getElementById('public-map').classList.remove('hidden');
-      this._useLeaflet = true;
-      // Hide Google-only controls
-      document.getElementById('map-search-box').classList.add('hidden');
-      document.getElementById('btn-toggle-poi').classList.add('hidden');
+      // OSM only — no toggle visible
+      this.setMapProvider('osm');
     }
 
     // Update usage
@@ -245,6 +244,57 @@ window.App = {
     document.getElementById('btn-toggle-poi').addEventListener('click', () => {
       MapManager.togglePOI(!MapManager.showPOI);
     });
+  },
+
+  // --- Map provider toggle ---
+  _currentProvider: 'osm',
+
+  setMapProvider(provider) {
+    this._currentProvider = provider;
+    this._useLeaflet = provider === 'osm';
+    const label = document.getElementById('map-provider-label');
+    const poiBtn = document.getElementById('btn-toggle-poi');
+    const searchBox = document.getElementById('map-search-box');
+
+    if (provider === 'google') {
+      document.getElementById('map').classList.remove('hidden');
+      document.getElementById('public-map').classList.add('hidden');
+      if (label) label.textContent = 'Google';
+      if (poiBtn) poiBtn.classList.remove('hidden');
+      if (searchBox) searchBox.classList.remove('hidden');
+      if (!MapManager.mapLoaded) MapManager.init();
+    } else {
+      document.getElementById('map').classList.add('hidden');
+      document.getElementById('public-map').classList.remove('hidden');
+      if (label) label.textContent = 'OSM';
+      if (poiBtn) poiBtn.classList.add('hidden');
+      if (searchBox) searchBox.classList.add('hidden');
+    }
+
+    // Re-render current project markers on the active map
+    if (this.currentProject && Markers?.list?.length > 0) {
+      if (provider === 'osm') {
+        this._displayLeafletMarkers(this.currentProject, Markers.list);
+      } else if (MapManager.mapLoaded) {
+        MapManager.displayMarkers(Markers.list);
+        MapManager.map.setCenter({ lat: this.currentProject.center_lat, lng: this.currentProject.center_lng });
+        MapManager.map.setZoom(this.currentProject.default_zoom || 14);
+      }
+    }
+  },
+
+  toggleMapProvider() {
+    if (!this._canUseGoogle) return;
+    this.setMapProvider(this._currentProvider === 'google' ? 'osm' : 'google');
+  },
+
+  // Auto-fallback to OSM when quota exceeded
+  fallbackToOSM(reason) {
+    if (this._currentProvider === 'osm') return;
+    this.setMapProvider('osm');
+    // Hide toggle (can't use Google anymore)
+    document.getElementById('btn-toggle-map-provider')?.classList.add('hidden');
+    this.toast(reason || I18n.t('quota.dailyReached'), 'warning');
   },
 
   // --- Theme ---
@@ -592,9 +642,12 @@ window.App = {
   // --- Leaflet marker display (shared by public view and auth users without Google API) ---
   _displayLeafletMarkers(project, markerList) {
     if (this._leafletMap) { this._leafletMap.remove(); this._leafletMap = null; }
-    this._leafletMap = L.map('public-map').setView([project.center_lat || 45.7983, project.center_lng || 24.1256], project.default_zoom || 14);
+    this._leafletMap = L.map('public-map', { zoomControl: true }).setView([project.center_lat || 45.7983, project.center_lng || 24.1256], project.default_zoom || 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+      // OSM tile usage policy: proper attribution + reasonable usage
+      // Tiles loaded directly by browser (each user = own IP, not proxied through our server)
     }).addTo(this._leafletMap);
 
     this._leafletMarkers = [];
@@ -663,10 +716,58 @@ window.App = {
       visBtn.querySelector('.material-icons-round').textContent = keyInput.type === 'password' ? 'visibility' : 'visibility_off';
     };
 
-    // Save
+    // Show API mode info
+    const mode = this.config?.googleApiMode || 'none';
+    if (mode === 'none') {
+      statusEl.innerHTML += `<div style="margin-top:8px;padding:8px;background:var(--bg-tertiary);border-radius:var(--radius-sm);font-size:12px;color:var(--text-tertiary)"><span class="material-icons-round" style="font-size:14px;vertical-align:middle">info</span> ${I18n.t('userKeys.notAuthorized')}</div>`;
+    }
+
+    // Show self-reset buttons for own-key users
+    const quotaArea = document.getElementById('api-keys-status');
+    if (mode === 'own') {
+      try {
+        const ur = await fetch('/api/usage');
+        if (ur.ok) {
+          const ud = await ur.json();
+          quotaArea.innerHTML += `<div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+            <span style="font-size:12px;font-family:var(--font-mono)">${I18n.t('quota.daily')}: ${ud.myTodayUsed}/${ud.dailyLimit}</span>
+            <button id="btn-self-reset-daily" class="btn btn-sm btn-accent">${I18n.t('admin.resetAllDaily').replace('(all)','').replace('(toți)','')}</button>
+            <span style="font-size:12px;font-family:var(--font-mono)">${I18n.t('quota.monthly')}: ${ud.myMonthUsed}/${ud.monthlyLimit}</span>
+            <button id="btn-self-reset-monthly" class="btn btn-sm btn-secondary">${I18n.t('admin.resetAllMonthly').replace('(all)','').replace('(toți)','')}</button>
+          </div>`;
+          document.getElementById('btn-self-reset-daily')?.addEventListener('click', async () => {
+            const r = await fetch('/api/user-quota/reset-daily', { method: 'POST' });
+            const d = await r.json();
+            this.toast(d.message || 'Daily quota reset', r.ok ? 'success' : 'warning');
+            this.openApiKeysModal();
+          });
+          document.getElementById('btn-self-reset-monthly')?.addEventListener('click', async () => {
+            const r = await fetch('/api/user-quota/reset-monthly', { method: 'POST' });
+            const d = await r.json();
+            this.toast(d.message || 'Monthly quota reset', r.ok ? 'success' : 'warning');
+            this.openApiKeysModal();
+          });
+        }
+      } catch {}
+    }
+
+    // Save with validation
     document.getElementById('btn-save-api-keys').onclick = async () => {
       const key = keyInput.value.trim();
       if (!key) { this.toast(I18n.t('toast.errorGeneric'), 'warning'); return; }
+
+      // Validate key first
+      this.toast('Validating API key...', 'info');
+      const vr = await fetch('/api/user-keys/validate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maps_api_key: key })
+      });
+      const vd = await vr.json();
+      if (!vd.valid) {
+        this.toast(vd.message || 'Invalid API key', 'error');
+        return;
+      }
+
       const r = await fetch('/api/user-keys', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -675,7 +776,7 @@ window.App = {
       if (r.ok) {
         this.toast(I18n.t('userKeys.saved'), 'success');
         keyInput.value = '';
-        this.openApiKeysModal(); // refresh
+        this.openApiKeysModal();
       } else {
         const err = await r.json().catch(() => ({}));
         this.toast(err.error || I18n.t('toast.errorGeneric'), 'error');

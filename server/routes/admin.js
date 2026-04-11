@@ -12,7 +12,7 @@ function requireAdmin(req, res, next) {
 
 // Get all users
 router.get('/users', requireAdmin, (req, res) => {
-  const users = db.all('SELECT id, email, name, avatar, role, is_approved, allow_google_api, subscription_until, ad_free_until, created_at FROM users ORDER BY created_at DESC');
+  const users = db.all('SELECT id, email, name, avatar, role, is_approved, google_api_mode, subscription_until, ad_free_until, created_at FROM users ORDER BY created_at DESC');
   res.json(users);
 });
 
@@ -20,12 +20,12 @@ router.get('/users', requireAdmin, (req, res) => {
 router.put('/users/:id', requireAdmin, (req, res) => {
   const user = db.get('SELECT * FROM users WHERE id = ?', [req.params.id]);
   if (!user) return res.status(404).json({ error: 'User not found' });
-  const { is_approved, role, subscription_until, ad_free_until, allow_google_api } = req.body;
+  const { is_approved, role, subscription_until, ad_free_until, google_api_mode } = req.body;
   db.run(
-    `UPDATE users SET is_approved = ?, role = ?, allow_google_api = ?, subscription_until = ?, ad_free_until = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-    [is_approved ?? user.is_approved, role ?? user.role, allow_google_api ?? user.allow_google_api, subscription_until ?? user.subscription_until, ad_free_until ?? user.ad_free_until, user.id]
+    `UPDATE users SET is_approved = ?, role = ?, google_api_mode = ?, subscription_until = ?, ad_free_until = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    [is_approved ?? user.is_approved, role ?? user.role, google_api_mode ?? user.google_api_mode, subscription_until ?? user.subscription_until, ad_free_until ?? user.ad_free_until, user.id]
   );
-  const updated = db.get('SELECT id, email, name, role, is_approved, allow_google_api, subscription_until, ad_free_until FROM users WHERE id = ?', [user.id]);
+  const updated = db.get('SELECT id, email, name, role, is_approved, google_api_mode, subscription_until, ad_free_until FROM users WHERE id = ?', [user.id]);
   res.json(updated);
 });
 

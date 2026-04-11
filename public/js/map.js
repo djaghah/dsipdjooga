@@ -32,14 +32,8 @@ window.MapManager = {
     // Check user rate limit before loading maps
     const allowed = await this.checkAndIncrement('maps_load');
     if (!allowed) {
-      // If map is already cached in browser (Google Maps script cached), allow view-only
-      if (window.google?.maps) {
-        this._quotaExceeded = true;
-        await this.loadGoogleMaps();
-        App.toast(I18n.t('quota.readOnly'), 'warning');
-        return;
-      }
-      this.showQuotaExhausted();
+      // Quota exceeded — fallback to OSM instead of blocking
+      App.fallbackToOSM(this._lastLimitError === 'monthly_limit' ? I18n.t('quota.monthlyReached') : I18n.t('quota.dailyReached'));
       return;
     }
 
@@ -196,19 +190,10 @@ window.MapManager = {
       App.toast(I18n.t('toast.mapNotReady'), 'warning');
       return;
     }
-    // Block geocoding if quota was exceeded (view-only mode)
-    if (this._quotaExceeded) {
-      App.toast(I18n.t('quota.searchBlocked'), 'warning');
-      resultsEl.classList.add('hidden');
-      return;
-    }
     // Check rate limit before geocoding
     const allowed = await this.checkAndIncrement('geocode');
     if (!allowed) {
-      const msg = this._lastLimitError === 'total_limit'
-        ? 'Limita totală de căutări atinsă.'
-        : 'Limita zilnică de căutări atinsă.';
-      App.toast(msg, 'warning');
+      App.fallbackToOSM(I18n.t('quota.searchBlocked'));
       resultsEl.classList.add('hidden');
       return;
     }

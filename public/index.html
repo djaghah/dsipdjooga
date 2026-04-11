@@ -525,6 +525,12 @@
           <span class="material-icons-round" style="font-size:18px">admin_panel_settings</span>
         </button>
 
+        <!-- Map provider toggle (Google/OSM) — only visible when user has Google API access -->
+        <button id="btn-toggle-map-provider" class="mode-btn hidden" title="Toggle Google Maps / OpenStreetMap" style="border-radius:var(--radius-sm);border:1px solid var(--border);padding:6px 10px">
+          <span class="material-icons-round" style="font-size:18px">swap_horiz</span>
+          <span id="map-provider-label" style="font-size:10px;font-weight:600">OSM</span>
+        </button>
+
         <!-- POI toggle -->
         <button id="btn-toggle-poi" class="mode-btn active" title="Ascunde POI Google" style="border-radius:var(--radius-sm);border:1px solid var(--border);padding:6px 10px">
           <span class="material-icons-round" style="font-size:18px">local_hospital</span>

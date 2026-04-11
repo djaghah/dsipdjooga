@@ -393,9 +393,11 @@ window.AdminPanel = {
             <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer" title="Activ/Inactiv">
               <input type="checkbox" class="usr-approved" data-id="${u.id}" ${u.is_approved ? 'checked' : ''}> Activ
             </label>
-            <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer" title="Allow Google Maps API">
-              <input type="checkbox" class="usr-google-api" data-id="${u.id}" ${u.allow_google_api ? 'checked' : ''}> <span class="material-icons-round" style="font-size:14px">map</span>API
-            </label>
+            <select class="usr-api-mode filter-select" data-id="${u.id}" style="width:90px;padding:2px 6px;font-size:10px" title="Google API mode">
+              <option value="none" ${(u.google_api_mode || 'none') === 'none' ? 'selected' : ''}>OSM</option>
+              <option value="system" ${u.google_api_mode === 'system' ? 'selected' : ''}>System</option>
+              <option value="own" ${u.google_api_mode === 'own' ? 'selected' : ''}>Own Keys</option>
+            </select>
             <select class="usr-role filter-select" data-id="${u.id}" style="width:80px;padding:2px 6px;font-size:11px">
               <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
               <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
@@ -437,14 +439,14 @@ window.AdminPanel = {
         const id = btn.dataset.id;
         const row = container.querySelector(`.admin-user-row[data-id="${id}"]`);
         const approvedCb = row.querySelector('.usr-approved');
-        const googleApiCb = row.querySelector('.usr-google-api');
+        const apiModeSel = row.querySelector('.usr-api-mode');
         const roleSel = row.querySelector('.usr-role');
         await fetch(`/api/admin/users/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             is_approved: approvedCb ? (approvedCb.checked ? 1 : 0) : 1,
-            allow_google_api: googleApiCb ? (googleApiCb.checked ? 1 : 0) : undefined,
+            google_api_mode: apiModeSel ? apiModeSel.value : undefined,
             role: roleSel ? roleSel.value : undefined,
             subscription_until: row.querySelector('.usr-sub').value || null,
             ad_free_until: row.querySelector('.usr-adfree').value || null
