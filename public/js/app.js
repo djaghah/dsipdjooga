@@ -89,6 +89,7 @@ window.App = {
     const avatarImg = document.getElementById('user-avatar');
     if (this.user.avatar) {
       avatarImg.src = this.user.avatar;
+      avatarImg.onerror = () => { avatarImg.style.display = 'none'; };
     } else {
       avatarImg.style.display = 'none';
     }
