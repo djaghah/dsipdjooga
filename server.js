@@ -93,6 +93,7 @@ async function start() {
   // Public app settings (non-sensitive)
   app.get('/api/public-settings', (req, res) => {
     const keys = ['ad_splash_interval_minutes', 'ad_splash_duration_seconds', 'promo_video_url',
+                  'promo_video_urls', 'ad_free_extension_minutes',
                   'google_ads_client', 'google_ads_slot_sidebar', 'google_ads_slot_splash',
                   'api_daily_limit_per_user', 'api_total_limit_per_user'];
     const rows = db.all('SELECT * FROM app_settings');
@@ -103,11 +104,52 @@ async function start() {
 
   // API config endpoint (safe public data)
   app.get('/api/config', (req, res) => {
+    let mapsApiKey = process.env.GOOGLE_MAPS_API_KEY || '';
+    let isCustomKey = false;
+
+    // If user is authenticated and has custom API key active, use theirs
+    if (req.isAuthenticated()) {
+      const userKey = db.get(
+        'SELECT maps_api_key, is_active FROM user_api_keys WHERE user_id = ? AND is_active = 1',
+        [req.user.id]
+      );
+      if (userKey?.maps_api_key) {
+        mapsApiKey = userKey.maps_api_key;
+        isCustomKey = true;
+      }
+    }
+
     res.json({
-      mapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
+      mapsApiKey,
+      isCustomKey,
       mapsQuotaDaily: parseInt(process.env.GOOGLE_MAPS_DAILY_LIMIT) || 900
     });
   });
+
+  // Helper: get effective daily/monthly limits for a user (including admin overrides)
+  function getUserLimits(userId) {
+    const today = new Date().toISOString().slice(0, 10);
+    const thisMonth = today.slice(0, 7);
+
+    const dailyDefault = parseInt(db.get("SELECT value FROM app_settings WHERE key = 'api_daily_limit_per_user'")?.value) || 10;
+    const monthlyDefault = parseInt(db.get("SELECT value FROM app_settings WHERE key = 'api_monthly_limit_per_user'")?.value) || 300;
+
+    const quota = db.get('SELECT * FROM user_quota WHERE user_id = ?', [userId]);
+
+    // Daily: use override if it's for today, else default
+    let dailyLimit = dailyDefault;
+    if (quota?.daily_limit_override && quota.daily_limit_date === today) {
+      dailyLimit = quota.daily_limit_override;
+    }
+
+    // Monthly: use override if it's for this month, else default
+    let monthlyLimit = monthlyDefault;
+    if (quota?.monthly_limit_override && quota.monthly_limit_period === thisMonth) {
+      monthlyLimit = quota.monthly_limit_override;
+    }
+
+    return { dailyLimit, monthlyLimit, dailyDefault, monthlyDefault };
+  }
 
   // API usage tracking - per user, per type, with rate limit
   app.post('/api/usage/increment', (req, res) => {
@@ -115,31 +157,46 @@ async function start() {
     const { type } = req.body;
     if (!type) return res.status(400).json({ error: 'Type required' });
     const today = new Date().toISOString().slice(0, 10);
+    const monthStart = today.slice(0, 7) + '-01';
 
-    // Check rate limit (super admin bypasses)
-    if (req.user.role !== 'admin') {
-      const limitSetting = db.get("SELECT value FROM app_settings WHERE key = 'api_daily_limit_per_user'");
-      const limit = parseInt(limitSetting?.value) || 10;
+    // Check if user has custom API key active (bypasses rate limits)
+    const userKey = db.get(
+      'SELECT is_active FROM user_api_keys WHERE user_id = ? AND is_active = 1',
+      [req.user.id]
+    );
+    const hasCustomKey = !!userKey;
+    const keySource = hasCustomKey ? 'custom' : 'system';
+
+    // Check rate limit (super admin and custom-key users bypass)
+    if (req.user.role !== 'admin' && !hasCustomKey) {
+      const { dailyLimit, monthlyLimit } = getUserLimits(req.user.id);
+
+      // Daily check
       const todayTotal = db.get('SELECT SUM(count) as total FROM api_usage WHERE user_id = ? AND date = ?', [req.user.id, today]);
-      if ((todayTotal?.total || 0) >= limit) {
-        return res.status(429).json({ error: 'rate_limit', message: `Limita zilnică de ${limit} accesări API atinsă.`, limit });
+      const todayUsed = todayTotal?.total || 0;
+      if (todayUsed >= dailyLimit) {
+        return res.status(429).json({ error: 'rate_limit', message: `Limita zilnică de ${dailyLimit} accesări API atinsă.`, limit: dailyLimit, used: todayUsed });
       }
 
-      // Check total limit (all-time)
-      const totalLimitSetting = db.get("SELECT value FROM app_settings WHERE key = 'api_total_limit_per_user'");
-      const totalLimit = parseInt(totalLimitSetting?.value) || 50;
-      const allTimeTotal = db.get('SELECT SUM(count) as total FROM api_usage WHERE user_id = ?', [req.user.id]);
-      if ((allTimeTotal?.total || 0) >= totalLimit) {
-        return res.status(429).json({ error: 'total_limit', message: `Limita totală de ${totalLimit} accesări API atinsă.`, limit: totalLimit });
+      // Monthly check
+      const monthTotal = db.get('SELECT SUM(count) as total FROM api_usage WHERE user_id = ? AND date >= ?', [req.user.id, monthStart]);
+      const monthUsed = monthTotal?.total || 0;
+      if (monthUsed >= monthlyLimit) {
+        return res.status(429).json({ error: 'monthly_limit', message: `Limita lunară de ${monthlyLimit} accesări API atinsă.`, limit: monthlyLimit, used: monthUsed });
       }
     }
 
+    // Track usage (always, even for custom-key users — admin sees all usage)
     db.run(
       `INSERT INTO api_usage (user_id, date, type, count) VALUES (?, ?, ?, 1)
        ON CONFLICT(user_id, date, type) DO UPDATE SET count = count + 1`,
       [req.user.id, today, type]
     );
-    res.json({ ok: true });
+
+    // Detailed log entry with key source
+    db.run('INSERT INTO api_log (user_id, type, key_source) VALUES (?, ?, ?)', [req.user.id, type, keySource]);
+
+    res.json({ ok: true, hasCustomKey });
   });
 
   // Get usage summary: this user today + all users this month (for cost display)
@@ -187,11 +244,26 @@ async function start() {
     // This user all-time total
     const myAllTime = db.get('SELECT SUM(count) as total FROM api_usage WHERE user_id = ?', [req.user.id]) || { total: 0 };
 
-    // Limits
-    const dailyLimitSetting = db.get("SELECT value FROM app_settings WHERE key = 'api_daily_limit_per_user'");
-    const totalLimitSetting = db.get("SELECT value FROM app_settings WHERE key = 'api_total_limit_per_user'");
-    const dailyLimit = parseInt(dailyLimitSetting?.value) || 10;
-    const totalLimit = parseInt(totalLimitSetting?.value) || 50;
+    // Per-user effective limits (includes admin overrides)
+    const myLimits = getUserLimits(req.user.id);
+    const dailyLimit = myLimits.dailyLimit;
+    const monthlyLimit = myLimits.monthlyLimit;
+
+    // My usage today and this month
+    const myTodayTotal = db.get('SELECT SUM(count) as total FROM api_usage WHERE user_id = ? AND date = ?', [req.user.id, today]);
+    const myMonthTotal = db.get('SELECT SUM(count) as total FROM api_usage WHERE user_id = ? AND date >= ?', [req.user.id, monthStart]);
+    const myTodayUsed = myTodayTotal?.total || 0;
+    const myMonthUsed = myMonthTotal?.total || 0;
+
+    // Monthly quota settings (platform-wide Google API quota)
+    const quotaMapsSetting = db.get("SELECT value FROM app_settings WHERE key = 'monthly_free_quota_maps'");
+    const quotaGeoSetting = db.get("SELECT value FROM app_settings WHERE key = 'monthly_free_quota_geocode'");
+    const monthlyQuotaMaps = parseInt(quotaMapsSetting?.value) || 28500;
+    const monthlyQuotaGeocode = parseInt(quotaGeoSetting?.value) || 40000;
+
+    // Check if user has custom key
+    const userKeyRow = db.get('SELECT is_active FROM user_api_keys WHERE user_id = ? AND is_active = 1', [req.user.id]);
+    const hasCustomKey = !!userKeyRow;
 
     // Cost calculation (USD):
     // Maps JS API: $7 per 1000 loads
@@ -216,6 +288,10 @@ async function start() {
       if (userCosts[key]) userCosts[key].totalAllTime = r.total;
     });
 
+    // Monthly totals by type for quota display
+    const monthMapsLoad = allMonth.find(r => r.type === 'maps_load')?.count || 0;
+    const monthGeocode = allMonth.find(r => r.type === 'geocode')?.count || 0;
+
     res.json({
       today: Object.fromEntries(myToday.map(r => [r.type, r.count])),
       myMonth: Object.fromEntries(myMonth.map(r => [r.type, r.count])),
@@ -226,8 +302,17 @@ async function start() {
       users: Object.values(userCosts),
       globalTotalCalls: globalTotal.total || 0,
       myTotalCalls: myAllTime.total || 0,
+      // Per-user quota (daily + monthly)
       dailyLimit,
-      totalLimit
+      monthlyLimit,
+      myTodayUsed,
+      myMonthUsed,
+      hasCustomKey,
+      // Platform-wide Google API quota
+      monthlyQuota: {
+        maps: { used: monthMapsLoad, limit: monthlyQuotaMaps, pct: Math.round(monthMapsLoad / monthlyQuotaMaps * 100) },
+        geocode: { used: monthGeocode, limit: monthlyQuotaGeocode, pct: Math.round(monthGeocode / monthlyQuotaGeocode * 100) }
+      }
     });
   });
 
@@ -273,6 +358,89 @@ async function start() {
       `INSERT OR REPLACE INTO geocache (query, lat, lng, name, address) VALUES (?, ?, ?, ?, ?)`,
       [query.toLowerCase(), lat, lng, name || '', address || '']
     );
+    res.json({ ok: true });
+  });
+
+  // ============ AD-FREE EXTENSION (video play reward) ============
+  app.post('/api/ad-free/extend', (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+
+    const extSetting = db.get("SELECT value FROM app_settings WHERE key = 'ad_free_extension_minutes'");
+    const minutes = parseInt(extSetting?.value) || 30;
+
+    // Cooldown: reject if ad_free_until was extended in the last 2 minutes
+    const user = db.get('SELECT ad_free_until FROM users WHERE id = ?', [req.user.id]);
+    if (user?.ad_free_until) {
+      const current = new Date(user.ad_free_until);
+      const now = new Date();
+      if (current > now && (current - now) > (minutes - 2) * 60 * 1000) {
+        return res.json({ ok: true, ad_free_until: user.ad_free_until, message: 'Already extended' });
+      }
+    }
+
+    const now = new Date();
+    const currentAdFree = user?.ad_free_until ? new Date(user.ad_free_until) : now;
+    const base = currentAdFree > now ? currentAdFree : now;
+    const newAdFree = new Date(base.getTime() + minutes * 60 * 1000);
+    const isoStr = newAdFree.toISOString();
+
+    db.run('UPDATE users SET ad_free_until = ? WHERE id = ?', [isoStr, req.user.id]);
+
+    res.json({ ok: true, ad_free_until: isoStr, minutes });
+  });
+
+  // ============ USER API KEYS ============
+  app.get('/api/user-keys', (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+    const row = db.get('SELECT * FROM user_api_keys WHERE user_id = ?', [req.user.id]);
+    if (!row) return res.json({ hasKey: false });
+    res.json({
+      hasKey: true,
+      isActive: !!row.is_active,
+      mapsKeyPreview: row.maps_api_key ? '****' + row.maps_api_key.slice(-6) : null,
+      updatedAt: row.updated_at
+    });
+  });
+
+  app.put('/api/user-keys', (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+    const { maps_api_key, is_active } = req.body;
+
+    // Validate key format (Google API keys start with AIza)
+    if (maps_api_key && !maps_api_key.startsWith('AIza')) {
+      return res.status(400).json({ error: 'Invalid API key format (must start with AIza...)' });
+    }
+
+    const existing = db.get('SELECT id FROM user_api_keys WHERE user_id = ?', [req.user.id]);
+    if (existing) {
+      const updates = [];
+      const params = [];
+      if (maps_api_key !== undefined) { updates.push('maps_api_key = ?'); params.push(maps_api_key); }
+      if (is_active !== undefined) { updates.push('is_active = ?'); params.push(is_active ? 1 : 0); }
+      updates.push('updated_at = CURRENT_TIMESTAMP');
+      params.push(req.user.id);
+      db.run(`UPDATE user_api_keys SET ${updates.join(', ')} WHERE user_id = ?`, params);
+    } else {
+      db.run(
+        'INSERT INTO user_api_keys (user_id, maps_api_key, is_active) VALUES (?, ?, ?)',
+        [req.user.id, maps_api_key || null, is_active !== undefined ? (is_active ? 1 : 0) : 1]
+      );
+    }
+    res.json({ ok: true });
+  });
+
+  app.post('/api/user-keys/toggle', (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+    const row = db.get('SELECT is_active FROM user_api_keys WHERE user_id = ?', [req.user.id]);
+    if (!row) return res.status(404).json({ error: 'No keys found' });
+    const newState = row.is_active ? 0 : 1;
+    db.run('UPDATE user_api_keys SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?', [newState, req.user.id]);
+    res.json({ ok: true, isActive: !!newState });
+  });
+
+  app.delete('/api/user-keys', (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+    db.run('DELETE FROM user_api_keys WHERE user_id = ?', [req.user.id]);
     res.json({ ok: true });
   });
 

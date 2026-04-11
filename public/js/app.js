@@ -75,6 +75,7 @@ window.App = {
     this.initLogout();
     this.initModals();
     this.initUsageModal();
+    this.initApiKeys();
 
     // Load projects
     Projects.loadAll();
@@ -277,10 +278,15 @@ window.App = {
       if (pct > 80) fill.classList.add('danger');
       else if (pct > 50) fill.classList.add('warning');
 
-      // Super admin sees total calls, regular users see cost
-      const isSuperAdmin = this.user && this.user.role === 'admin' && this.user.email === 'bogdansarac@gmail.com';
-      if (isSuperAdmin) {
-        document.getElementById('usage-text').textContent = `${data.globalTotalCalls} total | $${data.totalCostUSD}/$${data.creditUSD}`;
+      // Super admin sees detailed quota info
+      const isSuperAdmin = this._user_is_super_admin();
+      if (isSuperAdmin && data.monthlyQuota) {
+        const mq = data.monthlyQuota;
+        const mapsStr = `M:${mq.maps.used}/${mq.maps.limit}`;
+        const geoStr = `G:${mq.geocode.used}/${mq.geocode.limit}`;
+        document.getElementById('usage-text').textContent = `${mapsStr} | ${geoStr} | $${data.totalCostUSD}/$${data.creditUSD}`;
+      } else if (data.hasCustomKey) {
+        document.getElementById('usage-text').textContent = I18n.t('userKeys.usingCustom');
       } else {
         document.getElementById('usage-text').textContent = `$${data.totalCostUSD}/$${data.creditUSD}`;
       }
@@ -304,72 +310,93 @@ window.App = {
     } catch {}
 
     const d = this._usageData;
-    if (!d) { this.toast('Nu sunt date disponibile', 'warning'); return; }
+    if (!d) { this.toast(I18n.t('toast.errorGeneric'), 'warning'); return; }
 
     const typeLabels = { maps_load: 'Maps Load', geocode: 'Geocoding', places: 'Places Search' };
     const typeCosts = { maps_load: 7, geocode: 5, places: 17 };
 
     // Build content
-    let html = `
-      <div style="text-align:center;margin-bottom:20px">
-        <div style="font-size:36px;font-weight:700;font-family:var(--font-mono);color:var(--accent)">$${d.totalCostUSD}</div>
-        <div style="font-size:13px;color:var(--text-tertiary)">din $${d.creditUSD} credit lunar Google</div>
-        <div style="margin-top:8px;height:8px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden">
-          <div style="height:100%;width:${Math.min(d.totalCostUSD / d.creditUSD * 100, 100)}%;background:${d.totalCostUSD > 160 ? 'var(--danger)' : d.totalCostUSD > 100 ? 'var(--warning)' : 'var(--accent)'};border-radius:4px;transition:width 0.3s"></div>
+    let html = '';
+
+    // --- My quota (daily + monthly) - visible to all users ---
+    const dailyPct = d.dailyLimit > 0 ? Math.min(100, Math.round(d.myTodayUsed / d.dailyLimit * 100)) : 0;
+    const monthPct = d.monthlyLimit > 0 ? Math.min(100, Math.round(d.myMonthUsed / d.monthlyLimit * 100)) : 0;
+    const dailyColor = dailyPct >= 90 ? 'var(--danger)' : dailyPct >= 70 ? 'var(--warning)' : 'var(--accent)';
+    const monthColor = monthPct >= 90 ? 'var(--danger)' : monthPct >= 70 ? 'var(--warning)' : 'var(--accent)';
+
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div style="background:var(--bg-tertiary);padding:16px;border-radius:var(--radius-md)">
+        <div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:6px">${I18n.t('quota.daily')}</div>
+        <div style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:${dailyColor}">${d.myTodayUsed} / ${d.dailyLimit}</div>
+        <div style="margin-top:6px;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${dailyPct}%;background:${dailyColor};border-radius:3px;transition:width 0.3s"></div>
         </div>
-        <div style="font-size:12px;color:var(--success);margin-top:4px">Rămân $${d.remainingCreditUSD} credit</div>
+        <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">${dailyPct}% ${I18n.t('admin.used')} | ${Math.max(0, d.dailyLimit - d.myTodayUsed)} ${I18n.t('quota.remaining')}</div>
       </div>
+      <div style="background:var(--bg-tertiary);padding:16px;border-radius:var(--radius-md)">
+        <div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:6px">${I18n.t('quota.monthly')}</div>
+        <div style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:${monthColor}">${d.myMonthUsed} / ${d.monthlyLimit}</div>
+        <div style="margin-top:6px;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${monthPct}%;background:${monthColor};border-radius:3px;transition:width 0.3s"></div>
+        </div>
+        <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">${monthPct}% ${I18n.t('admin.used')} | ${Math.max(0, d.monthlyLimit - d.myMonthUsed)} ${I18n.t('quota.remaining')}</div>
+      </div>
+    </div>`;
 
-      <h4 style="font-size:13px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;margin-bottom:8px">Total platformă luna aceasta</h4>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">`;
-
-    for (const [type, count] of Object.entries(d.allMonth)) {
-      const cost = (count / 1000) * (typeCosts[type] || 5);
-      html += `<div style="background:var(--bg-tertiary);padding:10px;border-radius:var(--radius-md);text-align:center">
-        <div style="font-size:20px;font-weight:700;font-family:var(--font-mono)">${count}</div>
-        <div style="font-size:11px;color:var(--text-tertiary)">${typeLabels[type] || type}</div>
-        <div style="font-size:11px;color:var(--accent)">$${cost.toFixed(2)}</div>
+    // Custom key badge
+    if (d.hasCustomKey) {
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;margin-bottom:16px;background:rgba(16,185,129,0.1);border:1px solid var(--success);border-radius:var(--radius-md);font-size:13px;color:var(--success)">
+        <span class="material-icons-round">vpn_key</span> ${I18n.t('userKeys.usingCustom')} — ${I18n.t('quota.noLimits')}
       </div>`;
     }
-    html += `</div>`;
 
-    // Total calls summary (visible to super admin)
+    // --- My usage breakdown today ---
+    const myT = d.today;
+    if (myT && Object.keys(myT).length > 0) {
+      html += `<h4 style="font-size:13px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;margin-bottom:8px">${I18n.t('quota.todayBreakdown')}</h4>
+      <div style="display:flex;gap:8px;margin-bottom:16px">`;
+      for (const [type, count] of Object.entries(myT)) {
+        html += `<div style="background:var(--bg-tertiary);padding:8px 12px;border-radius:var(--radius-sm);font-size:13px">
+          <strong>${count}</strong> ${typeLabels[type] || type}
+        </div>`;
+      }
+      html += `</div>`;
+    }
+
+    // --- Platform cost (visible to all, details for super admin) ---
     const isSuperAdmin = this._user_is_super_admin();
-    if (isSuperAdmin && d.globalTotalCalls != null) {
-      html += `<div style="display:flex;gap:12px;margin-bottom:16px;padding:12px;background:var(--bg-tertiary);border-radius:var(--radius-md);border:1px solid var(--accent);border-opacity:0.3">
-        <div style="flex:1;text-align:center">
-          <div style="font-size:24px;font-weight:700;font-family:var(--font-mono);color:var(--accent)">${d.globalTotalCalls}</div>
-          <div style="font-size:11px;color:var(--text-tertiary)">Total apeluri platformă</div>
-        </div>
-        <div style="flex:1;text-align:center">
-          <div style="font-size:24px;font-weight:700;font-family:var(--font-mono)">${d.dailyLimit || 10}</div>
-          <div style="font-size:11px;color:var(--text-tertiary)">Limită zilnică/user</div>
-        </div>
-        <div style="flex:1;text-align:center">
-          <div style="font-size:24px;font-weight:700;font-family:var(--font-mono)">${d.totalLimit || 50}</div>
-          <div style="font-size:11px;color:var(--text-tertiary)">Limită totală/user</div>
-        </div>
-      </div>`;
+    html += `<div style="text-align:center;margin-bottom:16px;padding:12px;background:var(--bg-tertiary);border-radius:var(--radius-md)">
+      <div style="font-size:24px;font-weight:700;font-family:var(--font-mono);color:var(--accent)">$${d.totalCostUSD} / $${d.creditUSD}</div>
+      <div style="font-size:11px;color:var(--text-tertiary)">${I18n.t('admin.costThisMonth')}</div>
+      <div style="margin-top:6px;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden;max-width:300px;margin:6px auto 0">
+        <div style="height:100%;width:${Math.min(d.totalCostUSD / d.creditUSD * 100, 100)}%;background:${d.totalCostUSD > 160 ? 'var(--danger)' : 'var(--accent)'};border-radius:3px"></div>
+      </div>
+    </div>`;
+
+    // Platform breakdown by type
+    if (Object.keys(d.allMonth).length > 0) {
+      html += `<div style="display:grid;grid-template-columns:repeat(${Object.keys(d.allMonth).length}, 1fr);gap:8px;margin-bottom:16px">`;
+      for (const [type, count] of Object.entries(d.allMonth)) {
+        const cost = (count / 1000) * (typeCosts[type] || 5);
+        html += `<div style="background:var(--bg-tertiary);padding:10px;border-radius:var(--radius-md);text-align:center">
+          <div style="font-size:18px;font-weight:700;font-family:var(--font-mono)">${count}</div>
+          <div style="font-size:11px;color:var(--text-tertiary)">${typeLabels[type] || type}</div>
+          <div style="font-size:11px;color:var(--accent)">$${cost.toFixed(2)}</div>
+        </div>`;
+      }
+      html += `</div>`;
     }
 
-    // Per user breakdown
-    if (d.users.length > 0) {
-      html += `<h4 style="font-size:13px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;margin-bottom:8px">Consum per utilizator</h4>`;
+    // Per user breakdown (super admin only)
+    if (isSuperAdmin && d.users.length > 0) {
+      html += `<h4 style="font-size:13px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;margin-bottom:8px">${I18n.t('admin.topUsers')}</h4>`;
       d.users.sort((a, b) => b.cost - a.cost);
       d.users.forEach(u => {
         const details = Object.entries(u.breakdown).map(([t, c]) => `${typeLabels[t] || t}: ${c}`).join(', ');
-        const totalAllTime = u.totalAllTime || 0;
-        const totalLimitVal = d.totalLimit || 50;
-        const totalPct = Math.min(100, Math.round(totalAllTime / totalLimitVal * 100));
-        const totalColor = totalPct >= 90 ? 'var(--danger)' : totalPct >= 70 ? 'var(--warning)' : 'var(--accent)';
         html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg-tertiary);border-radius:var(--radius-sm);margin-bottom:4px">
           <div style="flex:1;min-width:0">
             <div style="font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.name}</div>
             <div style="font-size:11px;color:var(--text-tertiary)">${details}</div>
-            ${isSuperAdmin ? `<div style="margin-top:4px;height:4px;background:var(--bg-secondary);border-radius:2px;overflow:hidden">
-              <div style="height:100%;width:${totalPct}%;background:${totalColor};border-radius:2px"></div>
-            </div>
-            <div style="font-size:10px;color:var(--text-tertiary);margin-top:2px">Total: ${totalAllTime}/${totalLimitVal}</div>` : ''}
           </div>
           <div style="text-align:right;flex-shrink:0">
             <div style="font-weight:600;font-family:var(--font-mono);font-size:13px">${u.calls}</div>
@@ -379,22 +406,95 @@ window.App = {
       });
     }
 
-    // My usage today
-    const myT = d.today;
-    if (myT && Object.keys(myT).length > 0) {
-      const myTodayTotal = Object.values(myT).reduce((a, b) => a + b, 0);
-      html += `<h4 style="font-size:13px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;margin:16px 0 8px">Eu azi (${myTodayTotal}/${d.dailyLimit || 10} zilnic, ${d.myTotalCalls || 0}/${d.totalLimit || 50} total)</h4>
-      <div style="display:flex;gap:8px">`;
-      for (const [type, count] of Object.entries(myT)) {
-        html += `<div style="background:var(--bg-tertiary);padding:8px 12px;border-radius:var(--radius-sm);font-size:13px">
-          <strong>${count}</strong> ${typeLabels[type] || type}
-        </div>`;
-      }
-      html += `</div>`;
-    }
-
     document.getElementById('usage-modal-body').innerHTML = html;
     this.openModal('modal-usage');
+  },
+
+  // --- API Keys modal ---
+  initApiKeys() {
+    const btn = document.getElementById('btn-api-keys');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        document.getElementById('user-dropdown').classList.add('hidden');
+        this.openApiKeysModal();
+      });
+    }
+  },
+
+  async openApiKeysModal() {
+    this.openModal('modal-api-keys');
+    const statusEl = document.getElementById('api-keys-status');
+    const keyInput = document.getElementById('user-maps-key');
+    const toggleBtn = document.getElementById('btn-toggle-api-keys');
+    const deleteBtn = document.getElementById('btn-delete-api-keys');
+
+    // Load current keys
+    try {
+      const r = await fetch('/api/user-keys');
+      const data = await r.json();
+      if (data.hasKey) {
+        statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:var(--radius-md);background:${data.isActive ? 'rgba(16,185,129,0.1);border:1px solid var(--success)' : 'var(--bg-tertiary);border:1px solid var(--border)'}">
+          <span class="material-icons-round" style="color:${data.isActive ? 'var(--success)' : 'var(--text-tertiary)'}">${data.isActive ? 'check_circle' : 'pause_circle'}</span>
+          <span style="font-size:13px">${data.isActive ? I18n.t('userKeys.usingCustom') : I18n.t('userKeys.inactive')}</span>
+          ${data.mapsKeyPreview ? `<span style="font-family:var(--font-mono);font-size:12px;color:var(--text-tertiary);margin-left:auto">${data.mapsKeyPreview}</span>` : ''}
+        </div>`;
+        keyInput.placeholder = data.mapsKeyPreview || 'AIza...';
+        toggleBtn.querySelector('span:last-child').textContent = data.isActive ? I18n.t('userKeys.deactivate') : I18n.t('userKeys.activate');
+        toggleBtn.querySelector('.material-icons-round').textContent = data.isActive ? 'toggle_off' : 'toggle_on';
+        toggleBtn.classList.remove('hidden');
+        deleteBtn.classList.remove('hidden');
+      } else {
+        statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:var(--radius-md);background:var(--bg-tertiary)">
+          <span class="material-icons-round" style="color:var(--text-tertiary)">vpn_key_off</span>
+          <span style="font-size:13px;color:var(--text-tertiary)">${I18n.t('userKeys.usingSystem')}</span>
+        </div>`;
+        toggleBtn.classList.add('hidden');
+        deleteBtn.classList.add('hidden');
+      }
+    } catch {}
+
+    // Show/hide key
+    const visBtn = document.getElementById('btn-toggle-key-vis');
+    visBtn.onclick = () => {
+      keyInput.type = keyInput.type === 'password' ? 'text' : 'password';
+      visBtn.querySelector('.material-icons-round').textContent = keyInput.type === 'password' ? 'visibility' : 'visibility_off';
+    };
+
+    // Save
+    document.getElementById('btn-save-api-keys').onclick = async () => {
+      const key = keyInput.value.trim();
+      if (!key) { this.toast(I18n.t('toast.errorGeneric'), 'warning'); return; }
+      const r = await fetch('/api/user-keys', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maps_api_key: key, is_active: true })
+      });
+      if (r.ok) {
+        this.toast(I18n.t('userKeys.saved'), 'success');
+        keyInput.value = '';
+        this.openApiKeysModal(); // refresh
+      } else {
+        const err = await r.json().catch(() => ({}));
+        this.toast(err.error || I18n.t('toast.errorGeneric'), 'error');
+      }
+    };
+
+    // Toggle
+    toggleBtn.onclick = async () => {
+      const r = await fetch('/api/user-keys/toggle', { method: 'POST' });
+      if (r.ok) {
+        this.toast(I18n.t('userKeys.saved'), 'success');
+        this.openApiKeysModal();
+      }
+    };
+
+    // Delete
+    deleteBtn.onclick = async () => {
+      if (!confirm(I18n.t('userKeys.confirmDelete'))) return;
+      await fetch('/api/user-keys', { method: 'DELETE' });
+      this.toast(I18n.t('userKeys.deleted'), 'success');
+      this.openApiKeysModal();
+    };
   },
 
   // --- Toast ---

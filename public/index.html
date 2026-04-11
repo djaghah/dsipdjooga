@@ -183,7 +183,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' stroke='%234f6ef7' stroke-width='2' fill='none' opacity='0.5'/><circle cx='16' cy='10' r='3' fill='%234f6ef7'/><circle cx='10' cy='20' r='2.5' fill='%234f6ef7' opacity='0.7'/><circle cx='22' cy='18' r='2.5' fill='%234f6ef7' opacity='0.85'/></svg>">
-  <link rel="stylesheet" href="/css/style.css?v=3">
+  <link rel="stylesheet" href="/css/style.css?v=4">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 </head>
@@ -621,6 +621,11 @@
               </div>
             </div>
             <div class="dropdown-divider"></div>
+            <button id="btn-api-keys" class="dropdown-item">
+              <span class="material-icons-round">vpn_key</span>
+              <span data-i18n="userKeys.title">API Keys</span>
+            </button>
+            <div class="dropdown-divider"></div>
             <button id="btn-logout" class="dropdown-item danger">
               <span class="material-icons-round">logout</span>
               <span data-i18n="menu.logout">Logout</span>
@@ -796,22 +801,51 @@
       </aside>
     </main>
 
-    <!-- AD SPLASH SCREEN -->
+    <!-- AD SPLASH SCREEN (overlay modal with video reward) -->
     <div id="ad-splash" class="ad-splash hidden">
-      <div class="ad-splash-content">
-        <div class="ad-splash-header">
-          <span class="material-icons-round">info</span>
-          <span data-i18n="ads.splashMsg">Interact with DSIP to use the app ad-free</span>
-          <span id="ad-splash-timer" class="ad-splash-timer">10s</span>
+      <div class="ad-splash-content splash-two-col">
+        <!-- Left column: info + countdown -->
+        <div class="splash-left">
+          <div class="splash-logo">
+            <svg viewBox="0 0 32 32" fill="none" width="48" height="48">
+              <circle cx="16" cy="16" r="14" stroke="var(--accent)" stroke-width="2" opacity="0.5"/>
+              <circle cx="16" cy="10" r="3" fill="var(--accent)"/>
+              <circle cx="10" cy="20" r="2.5" fill="var(--accent)" opacity="0.7"/>
+              <circle cx="22" cy="18" r="2.5" fill="var(--accent)" opacity="0.85"/>
+            </svg>
+          </div>
+          <h3 class="splash-title" data-i18n="ads.splashTitle">DSIP MapManager</h3>
+          <p class="splash-msg" data-i18n="ads.splashMsg">Play the video to use the app ad-free</p>
+          <div class="splash-countdown-box">
+            <span class="material-icons-round">timer</span>
+            <span id="splash-countdown" class="splash-countdown-num">10</span>
+            <span>s</span>
+          </div>
+          <button id="btn-close-splash" class="btn btn-accent splash-close-btn" disabled>
+            <span class="material-icons-round">close</span>
+            <span data-i18n="ads.continue">Continue</span>
+          </button>
         </div>
-        <!-- Video container (shown when promo_video_url is set) -->
-        <div id="splash-video-container" class="splash-video-container hidden"></div>
-        <!-- Ad container (shown when no video, AdSense fallback) -->
-        <div id="ad-slot-splash" class="ad-slot-splash">
-          <ins class="adsbygoogle" style="display:block" data-ad-format="auto"></ins>
+        <!-- Right column: video player (paused, user initiates play) -->
+        <div class="splash-right">
+          <div id="splash-video-container" class="splash-video-container">
+            <div class="splash-video-placeholder">
+              <span class="material-icons-round" style="font-size:48px;opacity:0.4">play_circle</span>
+              <p data-i18n="ads.playToExtend">Play the video to get ad-free access</p>
+            </div>
+          </div>
+          <div id="splash-reward-msg" class="splash-reward-msg hidden">
+            <span class="material-icons-round">check_circle</span>
+            <span id="splash-reward-text"></span>
+          </div>
         </div>
-        <button id="btn-close-splash" class="btn btn-accent" disabled><span data-i18n="ads.continue">Continue</span> (<span id="splash-countdown">10</span>s)</button>
       </div>
+    </div>
+
+    <!-- Ad-free toast (bottom right) -->
+    <div id="adfree-toast" class="adfree-toast hidden">
+      <span class="material-icons-round">verified</span>
+      <span id="adfree-toast-text"></span>
     </div>
 
     <!-- ==================== ADMIN PANEL MODAL ==================== -->
@@ -825,9 +859,10 @@
         <div class="modal-body" style="padding:0">
           <!-- Admin tabs -->
           <div class="admin-tabs">
-            <button class="admin-tab active" data-tab="users"><span class="material-icons-round">people</span> Utilizatori</button>
-            <button class="admin-tab" data-tab="messages"><span class="material-icons-round">mail</span> Mesaje <span id="msg-badge" class="badge hidden">0</span></button>
-            <button class="admin-tab" data-tab="settings"><span class="material-icons-round">settings</span> Setări</button>
+            <button class="admin-tab active" data-tab="users"><span class="material-icons-round">people</span> <span data-i18n="admin.users">Utilizatori</span></button>
+            <button class="admin-tab" data-tab="messages"><span class="material-icons-round">mail</span> <span data-i18n="admin.messages">Mesaje</span> <span id="msg-badge" class="badge hidden">0</span></button>
+            <button class="admin-tab" data-tab="api-usage"><span class="material-icons-round">analytics</span> <span data-i18n="admin.apiUsage">API Usage</span></button>
+            <button class="admin-tab" data-tab="settings"><span class="material-icons-round">settings</span> <span data-i18n="admin.settings">Setări</span></button>
           </div>
 
           <!-- Users tab -->
@@ -849,6 +884,13 @@
             <div id="admin-messages-list"></div>
           </div>
 
+          <!-- API Usage tab -->
+          <div id="admin-tab-api-usage" class="admin-tab-content" style="padding:16px">
+            <div id="admin-api-usage-content">
+              <p data-i18n="common.loading">Loading...</p>
+            </div>
+          </div>
+
           <!-- Settings tab (super admin only) -->
           <div id="admin-tab-settings" class="admin-tab-content" style="padding:16px">
             <div class="form-grid">
@@ -857,8 +899,8 @@
                 <input id="set-api-limit" type="number" class="form-input" min="1" value="10">
               </div>
               <div class="form-group">
-                <label>Limită API totală per user</label>
-                <input id="set-api-total-limit" type="number" class="form-input" min="1" value="50">
+                <label data-i18n="admin.monthlyLimitLabel">Monthly API limit per user</label>
+                <input id="set-api-monthly-limit" type="number" class="form-input" min="1" value="300">
               </div>
               <div class="form-group">
                 <label>Ad Splash Interval (minute)</label>
@@ -868,9 +910,21 @@
                 <label>Ad Splash Durată (secunde)</label>
                 <input id="set-ad-duration" type="number" class="form-input" min="5">
               </div>
+              <div class="form-group">
+                <label data-i18n="admin.adFreeExtLabel">Ad-free extension (min)</label>
+                <input id="set-adfree-ext" type="number" class="form-input" min="1" value="30">
+              </div>
+              <div class="form-group">
+                <label data-i18n="admin.monthlyQuotaMaps">Monthly Maps Quota</label>
+                <input id="set-quota-maps" type="number" class="form-input" min="100" value="28500">
+              </div>
+              <div class="form-group">
+                <label data-i18n="admin.monthlyQuotaGeocode">Monthly Geocode Quota</label>
+                <input id="set-quota-geocode" type="number" class="form-input" min="100" value="40000">
+              </div>
               <div class="form-group col-span-2">
-                <label>URL Video Promo</label>
-                <input id="set-video-url" type="url" class="form-input" placeholder="https://youtube.com/...">
+                <label data-i18n="admin.videoUrlsLabel">Promo Video URLs (one per line)</label>
+                <textarea id="set-video-urls" class="form-input" rows="4" placeholder="https://youtube.com/watch?v=...&#10;https://youtube.com/watch?v=..."></textarea>
               </div>
             </div>
             <p style="margin-top:12px;font-size:12px;color:var(--text-tertiary)">AdSense (client/slots) se configurează din fișierul .env de pe server.</p>
@@ -1102,20 +1156,71 @@
     </div>
   </div>
 
+  <!-- ==================== USER API KEYS MODAL ==================== -->
+  <div id="modal-api-keys" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content animate-in" style="width:520px;max-width:95vw">
+      <div class="modal-header">
+        <h2><span class="material-icons-round" style="color:var(--accent);vertical-align:middle">vpn_key</span> <span data-i18n="userKeys.title">API Keys</span></h2>
+        <button class="btn-icon modal-close" data-close-modal="modal-api-keys"><span class="material-icons-round">close</span></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px" data-i18n="userKeys.description">Use your own Google Maps API key to bypass system rate limits. Your usage will be billed to your own Google Cloud account.</p>
+
+        <div id="api-keys-status" style="margin-bottom:16px"></div>
+
+        <div class="form-group">
+          <label data-i18n="userKeys.mapsKey">Google Maps API Key</label>
+          <div style="display:flex;gap:8px">
+            <input id="user-maps-key" type="password" class="form-input" placeholder="AIza..." style="flex:1;font-family:var(--font-mono);font-size:12px">
+            <button id="btn-toggle-key-vis" class="btn-icon" title="Show/Hide">
+              <span class="material-icons-round">visibility</span>
+            </button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button id="btn-save-api-keys" class="btn btn-accent" style="flex:1">
+            <span class="material-icons-round">save</span> <span data-i18n="common.save">Save</span>
+          </button>
+          <button id="btn-toggle-api-keys" class="btn btn-secondary">
+            <span class="material-icons-round">toggle_off</span> <span data-i18n="userKeys.deactivate">Deactivate</span>
+          </button>
+          <button id="btn-delete-api-keys" class="btn" style="background:var(--danger);color:white">
+            <span class="material-icons-round">delete</span>
+          </button>
+        </div>
+
+        <div style="margin-top:16px;padding:12px;background:var(--bg-tertiary);border-radius:var(--radius-md);font-size:12px;color:var(--text-tertiary)">
+          <p style="font-weight:600;margin-bottom:6px" data-i18n="userKeys.howToTitle">How to set up your own key:</p>
+          <ol style="margin:0;padding-left:18px;line-height:1.8">
+            <li data-i18n="userKeys.step1">Go to Google Cloud Console</li>
+            <li data-i18n="userKeys.step2">Create a project, enable Maps JavaScript API + Geocoding API</li>
+            <li data-i18n="userKeys.step3">Create an API Key</li>
+            <li data-i18n="userKeys.step4">Add maps.djooga.com/* to HTTP referrer restrictions</li>
+            <li data-i18n="userKeys.step5">Paste the key above and save</li>
+          </ol>
+        </div>
+
+        <p style="margin-top:8px;font-size:11px;color:var(--warning)" data-i18n="userKeys.reloadRequired">Changes take effect after page reload.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast notifications -->
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Scripts -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
-  <script src="/js/i18n.js?v=3"></script>
-  <script src="/js/icons.js?v=3"></script>
-  <script src="/js/theme.js?v=3"></script>
-  <script src="/js/app.js?v=3"></script>
-  <script src="/js/projects.js?v=3"></script>
-  <script src="/js/map.js?v=3"></script>
-  <script src="/js/markers.js?v=3"></script>
-  <script src="/js/markerTypes.js?v=3"></script>
-  <script src="/js/admin.js?v=3"></script>
+  <script src="/js/i18n.js?v=4"></script>
+  <script src="/js/icons.js?v=4"></script>
+  <script src="/js/theme.js?v=4"></script>
+  <script src="/js/app.js?v=4"></script>
+  <script src="/js/projects.js?v=4"></script>
+  <script src="/js/map.js?v=4"></script>
+  <script src="/js/markers.js?v=4"></script>
+  <script src="/js/markerTypes.js?v=4"></script>
+  <script src="/js/admin.js?v=4"></script>
 </body>
 </html>

@@ -21,10 +21,30 @@ window.MapManager = {
 
     if (!App.config?.mapsApiKey) { console.warn('No Maps API key'); return; }
 
+    // Session caching: if map was already loaded this session, don't count again
+    const sessionKey = 'dsip_maps_loaded_' + new Date().toISOString().slice(0, 10);
+    if (sessionStorage.getItem(sessionKey)) {
+      // Map was loaded earlier in this session — skip increment, just load
+      await this.loadGoogleMaps();
+      return;
+    }
+
     // Check user rate limit before loading maps
     const allowed = await this.checkAndIncrement('maps_load');
-    if (!allowed) { this.showQuotaExhausted(); return; }
+    if (!allowed) {
+      // If map is already cached in browser (Google Maps script cached), allow view-only
+      if (window.google?.maps) {
+        this._quotaExceeded = true;
+        await this.loadGoogleMaps();
+        App.toast(I18n.t('quota.readOnly'), 'warning');
+        return;
+      }
+      this.showQuotaExhausted();
+      return;
+    }
 
+    // Mark session as loaded (so soft navigations / SPA re-renders don't re-count)
+    sessionStorage.setItem(sessionKey, '1');
     await this.loadGoogleMaps();
   },
 
@@ -174,6 +194,12 @@ window.MapManager = {
   async doGeocode(query, resultsEl, goToFirst = false) {
     if (!this.geocoder) {
       App.toast(I18n.t('toast.mapNotReady'), 'warning');
+      return;
+    }
+    // Block geocoding if quota was exceeded (view-only mode)
+    if (this._quotaExceeded) {
+      App.toast(I18n.t('quota.searchBlocked'), 'warning');
+      resultsEl.classList.add('hidden');
       return;
     }
     // Check rate limit before geocoding
@@ -713,11 +739,11 @@ window.MapManager = {
   },
 
   showQuotaExhausted() {
-    const isTotal = this._lastLimitError === 'total_limit';
-    const title = isTotal ? 'Limită totală atinsă' : 'API Quota Exhausted';
-    const msg = isTotal
-      ? 'Ai atins limita totală de accesări API. Contactează administratorul.'
-      : 'Maps will be available again tomorrow.';
+    const err = this._lastLimitError;
+    const title = err === 'monthly_limit' ? I18n.t('quota.monthlyReached') : I18n.t('quota.dailyReached');
+    const msg = err === 'monthly_limit'
+      ? I18n.t('quota.monthlyMsg')
+      : I18n.t('quota.dailyMsg');
     document.getElementById('map').innerHTML = `
       <div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;color:var(--text-secondary);padding:40px;text-align:center;">
         <span class="material-icons-round" style="font-size:64px;opacity:0.3;margin-bottom:16px;">cloud_off</span>

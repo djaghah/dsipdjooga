@@ -174,8 +174,26 @@ window.AdminPanel = {
     return m ? m[1] : null;
   },
 
+  // Get random video URL from list
+  _getRandomVideoUrl() {
+    // Try video list first
+    try {
+      const urls = JSON.parse(this.settings.promo_video_urls || '[]');
+      if (Array.isArray(urls) && urls.length > 0) {
+        const valid = urls.filter(u => u && u.trim());
+        if (valid.length > 0) return valid[Math.floor(Math.random() * valid.length)].trim();
+      }
+    } catch {}
+    // Fallback to single URL
+    return this.settings.promo_video_url || null;
+  },
+
   showSplash() {
     if (this.isAdFree()) return;
+
+    const videoUrl = this._getRandomVideoUrl();
+    if (!videoUrl) return; // No videos configured, skip splash
+
     const splash = document.getElementById('ad-splash');
     splash.classList.remove('hidden');
 
@@ -186,47 +204,26 @@ window.AdminPanel = {
     btn.disabled = true;
     countdown.textContent = remaining;
 
-    // Reset button text
-    const btnLabel = btn.querySelector('[data-i18n]');
-    if (btnLabel) btnLabel.textContent = I18n.t('ads.continue');
-
     const videoContainer = document.getElementById('splash-video-container');
-    const adSlot = document.getElementById('ad-slot-splash');
-    const videoUrl = this.settings.promo_video_url;
+    const rewardMsg = document.getElementById('splash-reward-msg');
+    rewardMsg.classList.add('hidden');
+    this._splashRewarded = false;
 
-    // Show video or ad
-    if (videoUrl) {
-      adSlot.classList.add('hidden');
-      videoContainer.classList.remove('hidden');
-
-      const ytId = this._getYouTubeId(videoUrl);
-      if (ytId) {
-        // YouTube embed — autoplay, muted (required by browsers), no controls
-        videoContainer.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${ytId}" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
-      } else if (videoUrl.match(/\.(mp4|webm|ogg)(\?|$)/i)) {
-        // Direct video file
-        videoContainer.innerHTML = `<video autoplay muted loop playsinline><source src="${videoUrl}"></video>`;
-      } else {
-        // Unknown format — try as iframe
-        videoContainer.innerHTML = `<iframe src="${videoUrl}" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
-      }
+    // Build video (PAUSED — user must click play)
+    const ytId = this._getYouTubeId(videoUrl);
+    if (ytId) {
+      // YouTube embed — NO autoplay, WITH controls, user clicks play
+      videoContainer.innerHTML = `<iframe id="splash-yt-frame" src="https://www.youtube.com/embed/${ytId}?autoplay=0&controls=1&modestbranding=1&rel=0&showinfo=0&enablejsapi=1&origin=${location.origin}" allow="encrypted-media" allowfullscreen></iframe>`;
+      // Detect play via YouTube IFrame API postMessage
+      this._setupYouTubePlayDetection();
+    } else if (videoUrl.match(/\.(mp4|webm|ogg)(\?|$)/i)) {
+      // Direct video file — NOT autoplaying, WITH controls
+      videoContainer.innerHTML = `<video id="splash-direct-video" controls playsinline><source src="${videoUrl}"></video>`;
+      const vid = document.getElementById('splash-direct-video');
+      if (vid) vid.addEventListener('play', () => this._onVideoPlay(), { once: true });
     } else {
-      videoContainer.classList.add('hidden');
-      videoContainer.innerHTML = '';
-      adSlot.classList.remove('hidden');
-
-      // Configure AdSense fallback
-      const client = this.settings.google_ads_client;
-      const splashSlot = this.settings.google_ads_slot_splash;
-      if (client && splashSlot) {
-        const ins = document.querySelector('#ad-slot-splash .adsbygoogle');
-        if (ins && !ins.dataset.configured) {
-          ins.dataset.adClient = client;
-          ins.dataset.adSlot = splashSlot;
-          ins.dataset.configured = '1';
-          try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch {}
-        }
-      }
+      // Unknown format — iframe
+      videoContainer.innerHTML = `<iframe src="${videoUrl}" allow="encrypted-media" allowfullscreen></iframe>`;
     }
 
     // Clear any previous timer
@@ -242,19 +239,82 @@ window.AdminPanel = {
       }
     }, 1000);
 
-    // Close handler (remove old, add new to avoid stacking)
+    // Close handler
     const closeHandler = () => {
       splash.classList.add('hidden');
       if (this._splashTick) { clearInterval(this._splashTick); this._splashTick = null; }
-      // Stop video on close
-      videoContainer.innerHTML = '';
-      videoContainer.classList.add('hidden');
+      // Stop video
+      videoContainer.innerHTML = `<div class="splash-video-placeholder"><span class="material-icons-round" style="font-size:48px;opacity:0.4">play_circle</span><p>${I18n.t('ads.playToExtend')}</p></div>`;
       btn.removeEventListener('click', closeHandler);
-      this.startSplashTimer(); // restart timer for next splash
+      // Restart timer for next splash (only if not ad-free now)
+      if (!this.isAdFree()) this.startSplashTimer();
     };
     btn.removeEventListener('click', this._splashCloseHandler);
     this._splashCloseHandler = closeHandler;
     btn.addEventListener('click', closeHandler);
+  },
+
+  // YouTube play detection via postMessage
+  _setupYouTubePlayDetection() {
+    const handler = (event) => {
+      if (!event.origin.includes('youtube.com')) return;
+      try {
+        const data = JSON.parse(event.data);
+        // YouTube IFrame API sends state changes: 1 = playing
+        if (data.event === 'onStateChange' && data.info === 1) {
+          this._onVideoPlay();
+          window.removeEventListener('message', handler);
+        }
+        // Also detect infoDelivery with playerState
+        if (data.event === 'infoDelivery' && data.info?.playerState === 1) {
+          this._onVideoPlay();
+          window.removeEventListener('message', handler);
+        }
+      } catch {}
+    };
+    window.addEventListener('message', handler);
+    // Also try sending a "listening" command to the iframe
+    setTimeout(() => {
+      const iframe = document.getElementById('splash-yt-frame');
+      if (iframe?.contentWindow) {
+        iframe.contentWindow.postMessage('{"event":"listening","id":"1"}', '*');
+      }
+    }, 500);
+  },
+
+  // Called when user plays the video — reward with ad-free extension
+  async _onVideoPlay() {
+    if (this._splashRewarded) return;
+    this._splashRewarded = true;
+
+    try {
+      const r = await fetch('/api/ad-free/extend', { method: 'POST' });
+      if (r.ok) {
+        const data = await r.json();
+        // Update local user data
+        App.user.ad_free_until = data.ad_free_until;
+
+        // Show reward message in splash
+        const rewardMsg = document.getElementById('splash-reward-msg');
+        const rewardText = document.getElementById('splash-reward-text');
+        const until = new Date(data.ad_free_until);
+        const timeStr = until.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        rewardText.textContent = I18n.t('ads.thankYou', { time: timeStr });
+        rewardMsg.classList.remove('hidden');
+
+        // Show toast
+        const toast = document.getElementById('adfree-toast');
+        const toastText = document.getElementById('adfree-toast-text');
+        toastText.textContent = I18n.t('ads.thankYou', { time: timeStr });
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 8000);
+
+        // Re-evaluate ad visibility
+        this.applyAdVisibility();
+      }
+    } catch (e) {
+      console.error('Ad-free extend error:', e);
+    }
   },
 
   // ============ ADMIN PANEL ============
@@ -273,6 +333,8 @@ window.AdminPanel = {
         document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
         tab.classList.add('active');
         document.getElementById('admin-tab-' + tab.dataset.tab).classList.add('active');
+        // Lazy-load API usage tab
+        if (tab.dataset.tab === 'api-usage') this.loadApiUsage();
       });
     });
   },
@@ -430,24 +492,43 @@ window.AdminPanel = {
     if (!res.ok) return;
     const s = await res.json();
     document.getElementById('set-api-limit').value = s.api_daily_limit_per_user || 10;
-    document.getElementById('set-api-total-limit').value = s.api_total_limit_per_user || 50;
+    document.getElementById('set-api-monthly-limit').value = s.api_monthly_limit_per_user || 300;
     document.getElementById('set-ad-interval').value = s.ad_splash_interval_minutes || 5;
     document.getElementById('set-ad-duration').value = s.ad_splash_duration_seconds || 10;
-    document.getElementById('set-video-url').value = s.promo_video_url || '';
+    document.getElementById('set-adfree-ext').value = s.ad_free_extension_minutes || 30;
+    document.getElementById('set-quota-maps').value = s.monthly_free_quota_maps || 28500;
+    document.getElementById('set-quota-geocode').value = s.monthly_free_quota_geocode || 40000;
+
+    // Video URLs: parse JSON array to one-per-line textarea
+    let videoUrls = '';
+    try {
+      const arr = JSON.parse(s.promo_video_urls || '[]');
+      if (Array.isArray(arr)) videoUrls = arr.join('\n');
+    } catch {}
+    // Fallback: if old single URL exists and list is empty
+    if (!videoUrls && s.promo_video_url) videoUrls = s.promo_video_url;
+    document.getElementById('set-video-urls').value = videoUrls;
 
     document.getElementById('btn-save-settings').onclick = async () => {
+      // Parse video URLs textarea to JSON array
+      const urlLines = document.getElementById('set-video-urls').value.split('\n').map(l => l.trim()).filter(Boolean);
+
       await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           api_daily_limit_per_user: document.getElementById('set-api-limit').value,
-          api_total_limit_per_user: document.getElementById('set-api-total-limit').value,
+          api_monthly_limit_per_user: document.getElementById('set-api-monthly-limit').value,
           ad_splash_interval_minutes: document.getElementById('set-ad-interval').value,
           ad_splash_duration_seconds: document.getElementById('set-ad-duration').value,
-          promo_video_url: document.getElementById('set-video-url').value
+          ad_free_extension_minutes: document.getElementById('set-adfree-ext').value,
+          monthly_free_quota_maps: document.getElementById('set-quota-maps').value,
+          monthly_free_quota_geocode: document.getElementById('set-quota-geocode').value,
+          promo_video_urls: JSON.stringify(urlLines),
+          promo_video_url: urlLines[0] || ''
         })
       });
-      App.toast('Setări salvate!', 'success');
+      App.toast(I18n.t('admin.settingsSaved'), 'success');
     };
 
     // DB version check
@@ -484,5 +565,195 @@ window.AdminPanel = {
         App.toast('Eroare: ' + e.message, 'error');
       }
     };
+  },
+
+  // ============ API USAGE TAB ============
+  async loadApiUsage() {
+    const container = document.getElementById('admin-api-usage-content');
+    container.innerHTML = `<p style="text-align:center;color:var(--text-tertiary)">${I18n.t('common.loading')}</p>`;
+
+    try {
+      const [quotaRes, logRes, usageRes] = await Promise.all([
+        fetch('/api/admin/quota/users'),
+        fetch('/api/admin/usage/log?limit=200'),
+        fetch('/api/usage')
+      ]);
+      const quotaUsers = quotaRes.ok ? await quotaRes.json() : [];
+      const logEntries = logRes.ok ? await logRes.json() : [];
+      const usage = usageRes.ok ? await usageRes.json() : {};
+      this._quotaUsers = quotaUsers;
+
+      let html = '';
+
+      // --- Platform Google API quota summary ---
+      if (usage.monthlyQuota) {
+        const mq = usage.monthlyQuota;
+        html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
+          <div style="background:var(--bg-tertiary);padding:14px;border-radius:var(--radius-md)">
+            <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:4px">${I18n.t('admin.mapsLoadQuota')}</div>
+            <div style="font-size:22px;font-weight:700;font-family:var(--font-mono);color:${mq.maps.pct > 80 ? 'var(--danger)' : 'var(--accent)'}">${mq.maps.used.toLocaleString()} / ${mq.maps.limit.toLocaleString()}</div>
+            <div style="margin-top:6px;height:5px;background:var(--bg-secondary);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${Math.min(mq.maps.pct, 100)}%;background:${mq.maps.pct > 80 ? 'var(--danger)' : 'var(--accent)'};border-radius:3px"></div>
+            </div>
+          </div>
+          <div style="background:var(--bg-tertiary);padding:14px;border-radius:var(--radius-md)">
+            <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:4px">${I18n.t('admin.geocodeQuota')}</div>
+            <div style="font-size:22px;font-weight:700;font-family:var(--font-mono);color:${mq.geocode.pct > 80 ? 'var(--danger)' : 'var(--accent)'}">${mq.geocode.used.toLocaleString()} / ${mq.geocode.limit.toLocaleString()}</div>
+            <div style="margin-top:6px;height:5px;background:var(--bg-secondary);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${Math.min(mq.geocode.pct, 100)}%;background:${mq.geocode.pct > 80 ? 'var(--danger)' : 'var(--accent)'};border-radius:3px"></div>
+            </div>
+          </div>
+          <div style="background:var(--bg-tertiary);padding:14px;border-radius:var(--radius-md);text-align:center">
+            <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:4px">${I18n.t('admin.costThisMonth')}</div>
+            <div style="font-size:22px;font-weight:700;font-family:var(--font-mono);color:var(--accent)">$${usage.totalCostUSD} / $${usage.creditUSD}</div>
+            <div style="font-size:11px;color:var(--success);margin-top:4px">$${usage.remainingCreditUSD} ${I18n.t('admin.remaining')}</div>
+          </div>
+        </div>`;
+      }
+
+      // --- Reset all buttons ---
+      html += `<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-accent" id="btn-reset-all-daily"><span class="material-icons-round" style="font-size:16px">today</span> ${I18n.t('admin.resetAllDaily')}</button>
+        <button class="btn btn-sm btn-secondary" id="btn-reset-all-monthly"><span class="material-icons-round" style="font-size:16px">date_range</span> ${I18n.t('admin.resetAllMonthly')}</button>
+        <div style="flex:1"></div>
+        <input id="quota-user-search" type="text" class="form-input" placeholder="${I18n.t('sidebar.search')}" style="width:200px;padding:4px 10px;font-size:12px">
+      </div>`;
+
+      // --- Per-user quota table ---
+      html += `<div style="overflow-x:auto;margin-bottom:20px"><table style="width:100%;font-size:12px;border-collapse:collapse" id="quota-table">
+        <thead><tr style="background:var(--bg-tertiary)">
+          <th style="padding:8px;text-align:left">${I18n.t('common.name')}</th>
+          <th style="padding:8px;text-align:center">${I18n.t('admin.dailyQuota')}</th>
+          <th style="padding:8px;text-align:center">${I18n.t('admin.monthlyQuota')}</th>
+          <th style="padding:8px;text-align:center">${I18n.t('userKeys.title')}</th>
+          <th style="padding:8px;text-align:center">${I18n.t('admin.actions')}</th>
+        </tr></thead><tbody id="quota-tbody">`;
+      quotaUsers.forEach(u => { html += this._renderQuotaRow(u); });
+      html += `</tbody></table></div>`;
+
+      // --- Detailed API Log ---
+      html += `<h4 style="font-size:13px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;margin-bottom:8px">${I18n.t('admin.apiLog')}</h4>`;
+      html += `<div style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-md)">
+        <table style="width:100%;font-size:11px;border-collapse:collapse">
+          <thead style="position:sticky;top:0;background:var(--bg-tertiary)"><tr>
+            <th style="padding:6px 8px;text-align:left">${I18n.t('admin.time')}</th>
+            <th style="padding:6px 8px;text-align:left">${I18n.t('common.name')}</th>
+            <th style="padding:6px 8px;text-align:left">Type</th>
+            <th style="padding:6px 8px;text-align:center">${I18n.t('admin.keySource')}</th>
+          </tr></thead><tbody>`;
+      logEntries.forEach(l => {
+        const time = new Date(l.created_at).toLocaleString();
+        const keyBadge = l.key_source === 'custom'
+          ? '<span style="color:var(--success);font-size:10px;font-weight:600;background:rgba(16,185,129,0.1);padding:1px 6px;border-radius:99px">CUSTOM</span>'
+          : '<span style="color:var(--text-tertiary);font-size:10px">system</span>';
+        html += `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:4px 8px;color:var(--text-tertiary);white-space:nowrap">${time}</td>
+          <td style="padding:4px 8px">${l.name || l.email}</td>
+          <td style="padding:4px 8px;font-family:var(--font-mono)">${l.type}</td>
+          <td style="padding:4px 8px;text-align:center">${keyBadge}</td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+
+      container.innerHTML = html;
+
+      // --- Wire up events ---
+      // Search filter
+      document.getElementById('quota-user-search').addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase();
+        document.querySelectorAll('#quota-tbody tr').forEach(row => {
+          const text = row.textContent.toLowerCase();
+          row.style.display = text.includes(q) ? '' : 'none';
+        });
+      });
+
+      // Reset all daily
+      document.getElementById('btn-reset-all-daily').addEventListener('click', async () => {
+        if (!confirm(I18n.t('admin.confirmResetAllDaily'))) return;
+        const r = await fetch('/api/admin/quota/reset-daily', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        const d = await r.json();
+        App.toast(d.message, 'success');
+        this.loadApiUsage();
+      });
+
+      // Reset all monthly
+      document.getElementById('btn-reset-all-monthly').addEventListener('click', async () => {
+        if (!confirm(I18n.t('admin.confirmResetAllMonthly'))) return;
+        const r = await fetch('/api/admin/quota/reset-monthly', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        const d = await r.json();
+        App.toast(d.message, 'success');
+        this.loadApiUsage();
+      });
+
+      // Per-user reset buttons
+      container.querySelectorAll('.btn-reset-daily').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const uid = btn.dataset.userId;
+          const r = await fetch('/api/admin/quota/reset-daily', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: uid })
+          });
+          const d = await r.json();
+          App.toast(d.message, d.ok ? 'success' : 'warning');
+          this.loadApiUsage();
+        });
+      });
+      container.querySelectorAll('.btn-reset-monthly').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const uid = btn.dataset.userId;
+          const r = await fetch('/api/admin/quota/reset-monthly', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: uid })
+          });
+          const d = await r.json();
+          App.toast(d.message, d.ok ? 'success' : 'warning');
+          this.loadApiUsage();
+        });
+      });
+
+    } catch (e) {
+      container.innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`;
+    }
+  },
+
+  _renderQuotaRow(u) {
+    const dailyPct = Math.min(100, Math.round(u.todayUsed / u.dailyLimit * 100));
+    const monthPct = Math.min(100, Math.round(u.monthUsed / u.monthlyLimit * 100));
+    const dailyColor = dailyPct >= 90 ? 'var(--danger)' : dailyPct >= 70 ? 'var(--warning)' : 'var(--accent)';
+    const monthColor = monthPct >= 90 ? 'var(--danger)' : monthPct >= 70 ? 'var(--warning)' : 'var(--accent)';
+
+    return `<tr style="border-bottom:1px solid var(--border)" data-user-id="${u.id}">
+      <td style="padding:8px">
+        <strong>${u.name || 'N/A'}</strong><br>
+        <span style="font-size:10px;color:var(--text-tertiary)">${u.email}</span>
+      </td>
+      <td style="padding:8px;text-align:center;min-width:120px">
+        <div style="font-family:var(--font-mono);font-weight:600;color:${dailyColor}">${u.todayUsed}/${u.dailyLimit}</div>
+        <div style="height:4px;background:var(--bg-secondary);border-radius:2px;overflow:hidden;margin-top:3px">
+          <div style="height:100%;width:${dailyPct}%;background:${dailyColor};border-radius:2px"></div>
+        </div>
+        ${u.dailyResetDone ? '<span style="font-size:9px;color:var(--success)">+reset</span>' : ''}
+      </td>
+      <td style="padding:8px;text-align:center;min-width:120px">
+        <div style="font-family:var(--font-mono);font-weight:600;color:${monthColor}">${u.monthUsed}/${u.monthlyLimit}</div>
+        <div style="height:4px;background:var(--bg-secondary);border-radius:2px;overflow:hidden;margin-top:3px">
+          <div style="height:100%;width:${monthPct}%;background:${monthColor};border-radius:2px"></div>
+        </div>
+        ${u.monthlyResetDone ? '<span style="font-size:9px;color:var(--success)">+reset</span>' : ''}
+      </td>
+      <td style="padding:8px;text-align:center">
+        ${u.hasCustomKey ? '<span style="color:var(--success);font-size:16px">&#10003;</span>' : '<span style="color:var(--text-tertiary)">-</span>'}
+      </td>
+      <td style="padding:8px;text-align:center">
+        <div style="display:flex;gap:4px;justify-content:center">
+          <button class="btn-icon btn-reset-daily" data-user-id="${u.id}" title="Reset Daily" style="padding:4px">
+            <span class="material-icons-round" style="font-size:16px;color:var(--accent)">today</span>
+          </button>
+          <button class="btn-icon btn-reset-monthly" data-user-id="${u.id}" title="Reset Monthly" style="padding:4px">
+            <span class="material-icons-round" style="font-size:16px;color:var(--warning)">date_range</span>
+          </button>
+        </div>
+      </td>
+    </tr>`;
   }
 };

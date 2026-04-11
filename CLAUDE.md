@@ -11,19 +11,19 @@ Node.js client-server application for geographic project management with Google 
 - **Deployment**: Docker container behind nginx reverse proxy with SSL
 
 ## Key Files
-- `server.js` — Express app entry, middleware, routes, session config (no-cache in dev)
+- `server.js` — Express app entry, middleware, routes, session config, API usage/quota, ad-free extension, user API keys CRUD
 - `server/db.js` — SQLite schema, query helpers, seed data (100 hydrants + 300 signs in Sibiu), DB_VERSION constant (bump on schema changes)
 - `server/auth.js` — Passport Google OAuth + auto-admin for bogdansarac@gmail.com + whitelist check
 - `server/routes/auth.js` — Login/logout/user preferences (prompt: select_account for multi-account)
 - `server/routes/projects.js` — Project CRUD + project members (invite/role/remove)
 - `server/routes/markers.js` — Marker CRUD with project-level access control (admin=edit, viewer=read)
 - `server/routes/uploads.js` — Image upload with multer
-- `server/routes/admin.js` — Super admin panel: users, whitelist, contact requests, app settings, DB version check + reset
+- `server/routes/admin.js` — Super admin panel: users, whitelist, contact requests, app settings, DB version check + reset, quota management, API usage reports + logs
 - `server/routes/markerTypes.js` — Custom marker type CRUD
-- `public/index.html` — SPA HTML (login, unauthorized, expired, dashboard, admin panel, ads)
+- `public/index.html` — SPA HTML (login, unauthorized, expired, dashboard, admin panel, ads, API keys modal, usage modal)
 - `public/css/style.css` — Full CSS with dark/light theme via CSS vars
-- `public/js/app.js` — Main controller, project role enforcement (admin vs viewer UI)
-- `public/js/map.js` — Google Maps: search (Geocoding API), SVG→PNG marker rendering, right-click context menu, move mode, POI toggle, rate limit check before API calls
+- `public/js/app.js` — Main controller, project role enforcement, usage modal with daily/monthly quota, API keys modal
+- `public/js/map.js` — Google Maps: search (Geocoding API), SVG→PNG marker rendering, right-click context menu, move mode, POI toggle, rate limit check, session caching
 - `public/js/markers.js` — Sidebar list (all/in-view toggle, scrollable), create/edit modal, icon picker with tabs, PDF export
 - `public/robots.txt` — SEO: crawler directives (allow /, block /api/ /auth/ /uploads/)
 - `public/sitemap.xml` — SEO: sitemap with hreflang alternates (en/ro/de/fr)
@@ -31,7 +31,7 @@ Node.js client-server application for geographic project management with Google 
 - `public/js/icons.js` — SVGs: 10 avatars, 55 road signs, 24 firefighter icons, 5 default markers
 - `public/js/i18n.js` — Translations: EN, RO, DE, FR (all keys in all languages)
 - `public/js/theme.js` — Dark/light mode
-- `public/js/admin.js` — Super admin panel, ads system (AdSense + video splash), access control, admin/user role toggle, DB reset
+- `public/js/admin.js` — Super admin panel, splash overlay (video reward), access control, admin/user role toggle, DB reset, API usage tab with per-user quota table + reset + log
 - `public/js/markerTypes.js` — Custom marker type management
 - `Dockerfile` — Node 20 Alpine, non-root user, dumb-init, health check
 - `docker-compose.yml` — Hardened: read-only fs, no-new-privileges, cap_drop ALL, memory/cpu limits
@@ -47,14 +47,17 @@ Node.js client-server application for geographic project management with Google 
 - `marker_images` — Uploaded photos linked to markers
 - `marker_types` — Custom marker types per user (svg_data, scope: all/project)
 - `api_usage` — Per-user, per-type, per-day API call tracking (maps_load, geocode)
+- `api_log` — Detailed per-request API log with key_source (system/custom) for admin audit
+- `user_api_keys` — User's own Google Maps API keys (maps_api_key, is_active)
+- `user_quota` — Per-user quota overrides from admin resets (daily_limit_override, daily_limit_date, monthly_limit_override, monthly_limit_period)
 - `geocache` — Server-side geocoding result cache
 - `whitelist` — Allowed email addresses (removed after user creates account)
 - `contact_requests` — Access/renewal requests from unauthorized/expired users (acknowledged flag)
-- `app_settings` — Key-value admin settings (api_daily_limit_per_user, api_total_limit_per_user, ad timers, promo_video_url, db_version)
+- `app_settings` — Key-value admin settings (api_daily_limit_per_user, api_monthly_limit_per_user, ad timers, promo_video_urls, ad_free_extension_minutes, monthly quotas, db_version)
 
 ## User Roles & Access
 - **Super Admin**: bogdansarac@gmail.com — auto-assigned on first login, always admin, bypasses whitelist and rate limits, only one who sees Admin Panel button
-- **User**: Regular user, needs to be in whitelist to login, sees ads (unless ad_free_until is future), subject to daily API rate limit
+- **User**: Regular user, needs to be in whitelist to login, sees ads (unless ad_free_until is future), subject to daily + monthly API rate limits
 - **Project roles**: Project creator = project admin. Any project admin can invite Gmail addresses as admin or viewer. Viewer = read-only (no edit buttons, no admin mode, no right-click to add markers). Server enforces this on API level too.
 - **Admin/User toggle**: Super admin can switch to "USER" view in header to test user experience (sees ads, rate limits don't apply but UI behaves as user)
 - **Inactive users**: Super admin can set is_approved=0 → user cannot access platform
@@ -67,16 +70,34 @@ Node.js client-server application for geographic project management with Google 
 5. If approved + active subscription → Dashboard
 6. Super admin (bogdansarac@gmail.com) always passes all checks
 
-## API Rate Limiting
-- Dual limit system: daily limit (default 10/day) + total all-time limit (default 50 total) per user
+## API Rate Limiting & Quotas
+- **Daily quota**: default 10/day per user, configurable from admin
+- **Monthly quota**: default 300/month per user, configurable from admin
 - Rate limit checked BEFORE loading Google Maps and BEFORE each geocode request
-- If limit exceeded → map doesn't load (shows "quota exhausted" with specific message for daily vs total), search blocked with toast
-- Both limits configurable by super admin in Admin Panel > Settings
-- Super admin bypasses ALL rate limits (daily + total)
+- If daily limit exceeded → map doesn't load (shows "quota exhausted"), search blocked
+- If monthly limit exceeded → similar message, contact admin
+- Super admin bypasses ALL rate limits
+- Users with custom API keys bypass rate limits (use their own Google quota)
+- **Session caching**: `sessionStorage` prevents re-counting maps_load within same browser session
+- **View-only mode**: If quota exceeded but Maps JS is cached in browser, map loads in view-only (no search/geocoding)
+- **Admin quota reset**: Super admin can reset daily or monthly quota per user or all users
+  - Logic: `new_limit = max(current_limit, used + default_limit)` — ensures user gets full allowance from now, no stacking
+  - Example: user at 3/10 daily → admin resets → 3/13 (user has 10 remaining). Reset again → still 3/13
 - Tracks: maps_load, geocode per user per day in `api_usage` table (count = count + 1)
-- Super admin header shows: total platform calls + cost (`142 total | $0.99/$200`)
-- Usage modal shows per-user progress bars with total/limit for admin
+- Detailed log in `api_log` table: each call with user, type, key_source (system/custom), timestamp
+- Super admin header shows: M:used/limit | G:used/limit | $cost/$credit
+- Usage modal shows per-user daily/monthly quota with progress bars
 - Cost display: $7/1000 maps_load, $5/1000 geocode, $200/month Google free credit
+
+## User Custom API Keys
+- Users can bring their own Google Maps API key to bypass system rate limits
+- Menu: User dropdown → "API Keys" → modal with key input, toggle, delete
+- Key validation: must start with `AIza` (Google API key format)
+- When active: Maps JS API loads with user's key, geocoding uses user's key, no system rate limits
+- Key stored in `user_api_keys` table, only last 6 chars shown in UI (preview)
+- User must: create Google Cloud project, enable Maps JS API + Geocoding API, create API key, add `maps.djooga.com/*` to HTTP referrer restrictions
+- Admin sees in API Usage tab which users have custom keys
+- All usage still tracked in `api_usage` and `api_log` (for admin visibility)
 
 ## Marker Icon Rendering
 - SVG icons are converted to PNG via Canvas at runtime (SVG → Blob → Image → Canvas → PNG data URL)
@@ -84,17 +105,21 @@ Node.js client-server application for geographic project management with Google 
 - Cached in memory (_iconCache) — only rendered once per icon type
 - Fixes Google Maps SVG scaling issues at different zoom levels
 
-## Ads System
+## Ads & Monetization System
 - **Google AdSense** publisher: `ca-pub-8858656137000126`
-- Sidebar slot: `1236361551`, Splash slot: `9820382402`
+- Sidebar slot: `1236361551` — only AdSense placement (shown alongside real content = compliant)
 - All AdSense config in `.env` file only (not in admin panel)
 - Ads shown only to non-ad-free users. Super admin with ADMIN toggle = no ads. With USER toggle = sees ads.
-- **Splash screen**: every N minutes (default 5), countdown of M seconds (default 10). Configurable from Admin Panel > Settings.
-  - If `promo_video_url` is set → plays video (YouTube/MP4) in splash instead of AdSense ad
-  - YouTube URLs auto-parsed to embed (supports watch, youtu.be, shorts formats)
-  - Video autoplays muted (browser requirement), loops, no controls, 16:9 aspect ratio
-  - If no video URL → falls back to AdSense ad slot
-  - Video stops and cleans up on popup close
+- **Splash overlay (video reward)**:
+  - Two-column layout: left = logo + countdown + close button, right = video player
+  - Appears every N minutes (default 5), countdown M seconds (default 10). Configurable from Admin Panel.
+  - **Video list**: admin sets multiple YouTube/MP4 URLs (one per line), one shown randomly
+  - Video starts PAUSED — user must click play (AdSense compliant, no forced autoplay)
+  - **Reward**: If user clicks play → `ad_free_until` extended by N minutes (default 30, configurable)
+  - Shows "Mulțumim! Fără reclame până la HH:MM" in splash + toast notification
+  - YouTube play detected via postMessage API (`enablejsapi=1`), direct video via `play` event
+  - NO AdSense in splash overlay (removed — blocking overlays violate AdSense policy)
+  - Close button enabled after countdown, stops video, restarts timer
 - Map auto-resizes when ads sidebar appears/disappears (ResizeObserver)
 - **AdSense verification**: `djooga.com` has verification snippet at `/var/www/djooga.com/index.html`
 
@@ -107,7 +132,7 @@ Node.js client-server application for geographic project management with Google 
 - All labels use i18n translations
 
 ## Database Versioning
-- `DB_VERSION` constant in `server/db.js` — increment when schema changes
+- `DB_VERSION` constant in `server/db.js` (currently 3) — increment when schema changes
 - Stored in `app_settings` key `db_version` on every server start
 - Admin Panel > Settings shows version match/mismatch with warning when outdated
 - "Resetare Baza de Date" button: super admin only, double-confirm, deletes `data/dsip.db`, creates fresh schema + seed

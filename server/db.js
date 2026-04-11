@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const DB_PATH = path.join(__dirname, '..', 'data', 'dsip.db');
-const DB_VERSION = 2; // Increment when schema changes — triggers "reset needed" warning in admin
+const DB_VERSION = 3; // Increment when schema changes — triggers "reset needed" warning in admin
 let db = null;
 let SQL = null;
 
@@ -123,14 +123,55 @@ function createTables() {
 
   // Super admin does NOT need to be in whitelist — handled directly in auth.js
 
+  // User API keys table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS user_api_keys (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL UNIQUE,
+      maps_api_key TEXT,
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // API usage detailed log (per-request, includes key source)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS api_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      type TEXT NOT NULL,
+      key_source TEXT DEFAULT 'system',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Per-user quota overrides (admin can "reset" to give bonus)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS user_quota (
+      user_id INTEGER PRIMARY KEY,
+      daily_limit_override INTEGER,
+      daily_limit_date TEXT,
+      monthly_limit_override INTEGER,
+      monthly_limit_period TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
   // Default settings
   const defaults = {
     admin_email: 'bogdansarac@gmail.com',
     ad_splash_interval_minutes: '5',
     ad_splash_duration_seconds: '10',
     promo_video_url: '',
+    promo_video_urls: '[]',
+    ad_free_extension_minutes: '30',
     api_daily_limit_per_user: '10',
-    api_total_limit_per_user: '50',
+    api_monthly_limit_per_user: '300',
+    monthly_free_quota_maps: '28500',
+    monthly_free_quota_geocode: '40000',
     google_ads_client: process.env.GOOGLE_ADS_CLIENT || '',
     google_ads_slot_sidebar: process.env.GOOGLE_ADS_SLOT_SIDEBAR || '',
     google_ads_slot_splash: process.env.GOOGLE_ADS_SLOT_SPLASH || ''
@@ -256,7 +297,10 @@ function createTables() {
     'CREATE INDEX IF NOT EXISTS idx_markers_user ON markers(user_id)',
     'CREATE INDEX IF NOT EXISTS idx_markers_coords ON markers(lat, lng)',
     'CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id)',
-    'CREATE INDEX IF NOT EXISTS idx_geocache_query ON geocache(query)'
+    'CREATE INDEX IF NOT EXISTS idx_geocache_query ON geocache(query)',
+    'CREATE INDEX IF NOT EXISTS idx_api_usage_date ON api_usage(date)',
+    'CREATE INDEX IF NOT EXISTS idx_api_log_created ON api_log(created_at)',
+    'CREATE INDEX IF NOT EXISTS idx_api_log_user ON api_log(user_id)'
   ];
   indexes.forEach(sql => { try { db.run(sql); } catch {} });
 }

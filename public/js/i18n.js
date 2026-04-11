@@ -137,6 +137,7 @@ window.I18n = {
         users: 'Users',
         messages: 'Messages',
         settings: 'Settings',
+        apiUsage: 'API Usage',
         whitelist: 'Whitelist (allowed email addresses)',
         addToWhitelist: 'Add',
         active: 'Active',
@@ -149,10 +150,32 @@ window.I18n = {
         typeDeleted: 'Type deleted',
         settingsSaved: 'Settings saved!',
         apiLimitLabel: 'Daily API limit per user',
+        monthlyLimitLabel: 'Monthly API limit per user',
         adIntervalLabel: 'Ad Splash Interval (minutes)',
         adDurationLabel: 'Ad Splash Duration (seconds)',
         videoUrlLabel: 'Promo Video URL',
-        saveSettings: 'Save Settings'
+        videoUrlsLabel: 'Promo Video URLs (one per line)',
+        adFreeExtLabel: 'Ad-free extension (minutes)',
+        monthlyQuotaMaps: 'Monthly Maps Quota',
+        monthlyQuotaGeocode: 'Monthly Geocode Quota',
+        saveSettings: 'Save Settings',
+        topUsers: 'Top Users',
+        dailyLog: 'Daily Log',
+        apiLog: 'API Log',
+        mapsLoadQuota: 'Maps Load',
+        geocodeQuota: 'Geocoding',
+        costThisMonth: 'Cost this month',
+        used: 'used',
+        remaining: 'remaining',
+        dailyQuota: 'Daily',
+        monthlyQuota: 'Monthly',
+        actions: 'Actions',
+        time: 'Time',
+        keySource: 'Key',
+        resetAllDaily: 'Reset Daily (all)',
+        resetAllMonthly: 'Reset Monthly (all)',
+        confirmResetAllDaily: 'Reset daily quota for all users?',
+        confirmResetAllMonthly: 'Reset monthly quota for all users?'
       },
       common: {
         cancel: 'Cancel',
@@ -168,8 +191,31 @@ window.I18n = {
       },
       ads: {
         watchSubscribe: 'Watch and subscribe',
-        splashMsg: 'Interact with DSIP to use the app ad-free',
-        continue: 'Continue'
+        splashTitle: 'DSIP MapManager',
+        splashMsg: 'Play the video to use the app ad-free',
+        playToExtend: 'Play the video to get ad-free access',
+        continue: 'Continue',
+        thankYou: 'Thank you! Ad-free until {time}'
+      },
+      userKeys: {
+        title: 'API Keys',
+        description: 'Use your own Google Maps API key to bypass system rate limits. Your usage will be billed to your own Google Cloud account.',
+        mapsKey: 'Google Maps API Key',
+        usingCustom: 'Using your API key',
+        usingSystem: 'Using system API key',
+        inactive: 'Key deactivated',
+        activate: 'Activate',
+        deactivate: 'Deactivate',
+        saved: 'API key saved',
+        deleted: 'API key removed',
+        confirmDelete: 'Remove your API key? You will return to system limits.',
+        reloadRequired: 'Changes take effect after page reload.',
+        howToTitle: 'How to set up your own key:',
+        step1: 'Go to Google Cloud Console',
+        step2: 'Create a project, enable Maps JavaScript API + Geocoding API',
+        step3: 'Create an API Key',
+        step4: 'Add maps.djooga.com/* to HTTP referrer restrictions',
+        step5: 'Paste the key above and save'
       },
       pdf: {
         export: 'Export PDF',
@@ -183,6 +229,19 @@ window.I18n = {
         all: 'All',
         markerList: 'Marker List',
         noMarkers: 'No markers match the current filters'
+      },
+      quota: {
+        daily: 'Daily Quota',
+        monthly: 'Monthly Quota',
+        remaining: 'remaining',
+        noLimits: 'No system limits applied',
+        todayBreakdown: 'Today\'s breakdown',
+        readOnly: 'Quota exceeded — map in view-only mode',
+        searchBlocked: 'Search disabled — quota exceeded',
+        dailyReached: 'Daily Limit Reached',
+        monthlyReached: 'Monthly Limit Reached',
+        dailyMsg: 'Maps will be available again tomorrow.',
+        monthlyMsg: 'Monthly API limit reached. Contact the administrator.'
       },
       toast: {
         projectCreated: 'Project created!',
@@ -328,6 +387,7 @@ window.I18n = {
         users: 'Utilizatori',
         messages: 'Mesaje',
         settings: 'Setări',
+        apiUsage: 'Consum API',
         whitelist: 'Whitelist (adrese permise)',
         addToWhitelist: 'Adaugă',
         active: 'Activ',
@@ -343,7 +403,28 @@ window.I18n = {
         adIntervalLabel: 'Interval Splash Reclame (minute)',
         adDurationLabel: 'Durată Splash (secunde)',
         videoUrlLabel: 'URL Video Promo',
-        saveSettings: 'Salvează Setări'
+        videoUrlsLabel: 'URL-uri Video Promo (câte unul pe linie)',
+        adFreeExtLabel: 'Extensie fără reclame (minute)',
+        monthlyQuotaMaps: 'Cotă lunară Maps',
+        monthlyQuotaGeocode: 'Cotă lunară Geocode',
+        saveSettings: 'Salvează Setări',
+        topUsers: 'Top Utilizatori',
+        dailyLog: 'Log Zilnic',
+        apiLog: 'Log API',
+        mapsLoadQuota: 'Maps Load',
+        geocodeQuota: 'Geocoding',
+        costThisMonth: 'Cost luna aceasta',
+        used: 'utilizat',
+        remaining: 'rămase',
+        dailyQuota: 'Zilnic',
+        monthlyQuota: 'Lunar',
+        actions: 'Acțiuni',
+        time: 'Ora',
+        keySource: 'Cheie',
+        resetAllDaily: 'Reset Zilnic (toți)',
+        resetAllMonthly: 'Reset Lunar (toți)',
+        confirmResetAllDaily: 'Resetezi cota zilnică pentru toți utilizatorii?',
+        confirmResetAllMonthly: 'Resetezi cota lunară pentru toți utilizatorii?'
       },
       common: {
         cancel: 'Anulează',
@@ -359,8 +440,31 @@ window.I18n = {
       },
       ads: {
         watchSubscribe: 'Urmărește și abonează-te',
-        splashMsg: 'Interacționează cu DSIP pentru a rula aplicația fără reclame',
-        continue: 'Continuă'
+        splashTitle: 'DSIP MapManager',
+        splashMsg: 'Pornește videoclipul pentru a folosi aplicația fără reclame',
+        playToExtend: 'Pornește videoclipul pentru acces fără reclame',
+        continue: 'Continuă',
+        thankYou: 'Mulțumim! Fără reclame până la {time}'
+      },
+      userKeys: {
+        title: 'Chei API',
+        description: 'Folosește propria ta cheie Google Maps API pentru a evita limitele de sistem. Consumul va fi facturat pe contul tău Google Cloud.',
+        mapsKey: 'Cheie Google Maps API',
+        usingCustom: 'Folosești cheia ta API',
+        usingSystem: 'Folosești cheia de sistem',
+        inactive: 'Cheie dezactivată',
+        activate: 'Activează',
+        deactivate: 'Dezactivează',
+        saved: 'Cheie API salvată',
+        deleted: 'Cheie API ștearsă',
+        confirmDelete: 'Ștergi cheia API? Vei reveni la limitele de sistem.',
+        reloadRequired: 'Modificările se aplică după reîncărcarea paginii.',
+        howToTitle: 'Cum să-ți configurezi cheia:',
+        step1: 'Mergi la Google Cloud Console',
+        step2: 'Creează un proiect, activează Maps JavaScript API + Geocoding API',
+        step3: 'Creează o cheie API',
+        step4: 'Adaugă maps.djooga.com/* la restricțiile de referrer HTTP',
+        step5: 'Lipește cheia mai sus și salvează'
       },
       pdf: {
         export: 'Export PDF',
@@ -374,6 +478,19 @@ window.I18n = {
         all: 'Toate',
         markerList: 'Lista Markere',
         noMarkers: 'Niciun marker nu corespunde filtrelor'
+      },
+      quota: {
+        daily: 'Cotă Zilnică',
+        monthly: 'Cotă Lunară',
+        remaining: 'rămase',
+        noLimits: 'Fără limite de sistem',
+        todayBreakdown: 'Detalii azi',
+        readOnly: 'Cotă depășită — hartă doar vizualizare',
+        searchBlocked: 'Căutare dezactivată — cotă depășită',
+        dailyReached: 'Limită zilnică atinsă',
+        monthlyReached: 'Limită lunară atinsă',
+        dailyMsg: 'Harta va fi disponibilă din nou mâine.',
+        monthlyMsg: 'Limita lunară API atinsă. Contactează administratorul.'
       },
       toast: {
         projectCreated: 'Proiect creat!',
@@ -467,11 +584,13 @@ window.I18n = {
       picker: { general: 'Allgemein', firefighter: 'Feuerwehr', signs: 'Schilder', custom: 'Benutzerdefiniert', hydrants: 'Hydranten', waterSources: 'Wasserquellen', equipment: 'Ausrüstung', alarms: 'Alarme & Systeme', locations: 'Besondere Orte' },
       markerActions: { edit: 'Bearbeiten', move: 'Verschieben', delete: 'Löschen', dragToMove: 'Marker an die gewünschte Position ziehen', savePosition: 'Speichern', cancelMove: 'Abbrechen', positionSaved: 'Position gespeichert!', activate: 'Aktivieren', deactivate: 'Deaktivieren' },
       access: { restricted: 'Zugang eingeschränkt', restrictedMsg: 'Ihr Konto ({email}) hat keinen Zugang.', sendRequest: 'Anfrage senden', requestSent: 'Anfrage gesendet!', expired: 'Abonnement abgelaufen', expiredMsg: 'Ihr Abonnement ist am {date} abgelaufen.', requestRenewal: 'Erneuerung anfordern', renewalSent: 'Anfrage gesendet!' },
-      admin: { panel: 'Admin-Panel', users: 'Benutzer', messages: 'Nachrichten', settings: 'Einstellungen', whitelist: 'Whitelist', addToWhitelist: 'Hinzufügen', active: 'Aktiv', unconfirmed: 'Unbestätigt', confirmed: 'Bestätigt', allMessages: 'Alle', noMessages: 'Keine Nachrichten', userUpdated: 'Benutzer aktualisiert', addedToWhitelist: 'Zur Whitelist hinzugefügt', settingsSaved: 'Einstellungen gespeichert!', apiLimitLabel: 'Tägliches API-Limit pro Benutzer', adIntervalLabel: 'Werbe-Splash-Intervall (Min.)', adDurationLabel: 'Splash-Dauer (Sek.)', videoUrlLabel: 'Promo-Video-URL', saveSettings: 'Einstellungen speichern' },
+      admin: { panel: 'Admin-Panel', users: 'Benutzer', messages: 'Nachrichten', settings: 'Einstellungen', apiUsage: 'API-Nutzung', whitelist: 'Whitelist', addToWhitelist: 'Hinzufügen', active: 'Aktiv', unconfirmed: 'Unbestätigt', confirmed: 'Bestätigt', allMessages: 'Alle', noMessages: 'Keine Nachrichten', userUpdated: 'Benutzer aktualisiert', addedToWhitelist: 'Zur Whitelist hinzugefügt', settingsSaved: 'Einstellungen gespeichert!', apiLimitLabel: 'Tägliches API-Limit pro Benutzer', adIntervalLabel: 'Werbe-Splash-Intervall (Min.)', adDurationLabel: 'Splash-Dauer (Sek.)', videoUrlLabel: 'Promo-Video-URL', videoUrlsLabel: 'Promo-Video-URLs (eine pro Zeile)', adFreeExtLabel: 'Werbefreie Verlängerung (Min.)', monthlyQuotaMaps: 'Monatliches Maps-Kontingent', monthlyQuotaGeocode: 'Monatliches Geocode-Kontingent', saveSettings: 'Einstellungen speichern', topUsers: 'Top-Benutzer', dailyLog: 'Tagesprotokoll', apiLog: 'API-Protokoll', mapsLoadQuota: 'Maps Load', geocodeQuota: 'Geocoding', costThisMonth: 'Kosten diesen Monat', used: 'verwendet', remaining: 'übrig', dailyQuota: 'Täglich', monthlyQuota: 'Monatlich', actions: 'Aktionen', time: 'Zeit', keySource: 'Schlüssel', resetAllDaily: 'Täglich zurücksetzen (alle)', resetAllMonthly: 'Monatlich zurücksetzen (alle)', confirmResetAllDaily: 'Tägliches Kontingent für alle zurücksetzen?', confirmResetAllMonthly: 'Monatliches Kontingent für alle zurücksetzen?' },
+      quota: { daily: 'Tageskontingent', monthly: 'Monatskontingent', remaining: 'übrig', noLimits: 'Keine Systemlimits', todayBreakdown: 'Aufschlüsselung heute', readOnly: 'Kontingent überschritten — Karte nur Ansicht', searchBlocked: 'Suche deaktiviert — Kontingent überschritten', dailyReached: 'Tageslimit erreicht', monthlyReached: 'Monatslimit erreicht', dailyMsg: 'Karten sind morgen wieder verfügbar.', monthlyMsg: 'Monatliches API-Limit erreicht. Kontaktieren Sie den Administrator.' },
       common: {
         cancel: 'Abbrechen', save: 'Speichern', delete: 'Löschen', confirm: 'Bestätigen', loading: 'Laden...', success: 'Erfolg', error: 'Fehler', name: 'Name', message: 'Nachricht', logout: 'Abmelden'
       },
-      ads: { watchSubscribe: 'Ansehen und abonnieren', splashMsg: 'Interagieren Sie mit DSIP, um die App werbefrei zu nutzen', continue: 'Weiter' },
+      ads: { watchSubscribe: 'Ansehen und abonnieren', splashTitle: 'DSIP MapManager', splashMsg: 'Video abspielen, um die App werbefrei zu nutzen', playToExtend: 'Video abspielen für werbefreien Zugang', continue: 'Weiter', thankYou: 'Danke! Werbefrei bis {time}' },
+      userKeys: { title: 'API-Schlüssel', description: 'Verwenden Sie Ihren eigenen Google Maps API-Schlüssel, um Systemlimits zu umgehen. Die Nutzung wird Ihrem Google Cloud-Konto berechnet.', mapsKey: 'Google Maps API-Schlüssel', usingCustom: 'Eigener API-Schlüssel aktiv', usingSystem: 'System-API-Schlüssel', inactive: 'Schlüssel deaktiviert', activate: 'Aktivieren', deactivate: 'Deaktivieren', saved: 'API-Schlüssel gespeichert', deleted: 'API-Schlüssel entfernt', confirmDelete: 'API-Schlüssel entfernen? Sie kehren zu den Systemlimits zurück.', reloadRequired: 'Änderungen werden nach dem Neuladen wirksam.', howToTitle: 'So richten Sie Ihren Schlüssel ein:', step1: 'Gehen Sie zur Google Cloud Console', step2: 'Erstellen Sie ein Projekt, aktivieren Sie Maps JavaScript API + Geocoding API', step3: 'Erstellen Sie einen API-Schlüssel', step4: 'Fügen Sie maps.djooga.com/* zu den HTTP-Referrer-Beschränkungen hinzu', step5: 'Fügen Sie den Schlüssel oben ein und speichern Sie' },
       pdf: { export: 'PDF exportieren', title: 'Marker-Bericht', project: 'Projekt', generated: 'Erstellt', filters: 'Angewandte Filter', status: 'Status', condition: 'Zustand', search: 'Suche', all: 'Alle', markerList: 'Markerliste', noMarkers: 'Keine Marker entsprechen den Filtern' },
       toast: {
         projectCreated: 'Projekt erstellt!', projectDeleted: 'Projekt gelöscht', markerSaved: 'Marker gespeichert!', markerDeleted: 'Marker gelöscht', settingsSaved: 'Einstellungen gespeichert', errorGeneric: 'Etwas ist schiefgelaufen', locationNotFound: 'Ort nicht gefunden: "{query}"', mapNotReady: 'Karte noch nicht geladen.'
@@ -558,11 +677,13 @@ window.I18n = {
       picker: { general: 'Général', firefighter: 'Pompiers', signs: 'Panneaux', custom: 'Personnalisé', hydrants: 'Bouches d\'incendie', waterSources: 'Sources d\'eau', equipment: 'Équipement', alarms: 'Alarmes & Systèmes', locations: 'Lieux Spéciaux' },
       markerActions: { edit: 'Modifier', move: 'Déplacer', delete: 'Supprimer', dragToMove: 'Glissez le marqueur', savePosition: 'Enregistrer', cancelMove: 'Annuler', positionSaved: 'Position enregistrée!', activate: 'Activer', deactivate: 'Désactiver' },
       access: { restricted: 'Accès Restreint', restrictedMsg: 'Votre compte ({email}) n\'a pas accès.', sendRequest: 'Envoyer', requestSent: 'Demande envoyée!', expired: 'Abonnement Expiré', expiredMsg: 'Votre abonnement a expiré le {date}.', requestRenewal: 'Demander le renouvellement', renewalSent: 'Demande envoyée!' },
-      admin: { panel: 'Panneau Admin', users: 'Utilisateurs', messages: 'Messages', settings: 'Paramètres', whitelist: 'Liste blanche', addToWhitelist: 'Ajouter', active: 'Actif', unconfirmed: 'Non confirmés', confirmed: 'Confirmés', allMessages: 'Tous', noMessages: 'Aucun message', userUpdated: 'Utilisateur mis à jour', addedToWhitelist: 'Ajouté à la liste blanche', settingsSaved: 'Paramètres enregistrés!', apiLimitLabel: 'Limite API quotidienne par utilisateur', adIntervalLabel: 'Intervalle splash pub (min.)', adDurationLabel: 'Durée splash (sec.)', videoUrlLabel: 'URL Vidéo Promo', saveSettings: 'Enregistrer' },
+      admin: { panel: 'Panneau Admin', users: 'Utilisateurs', messages: 'Messages', settings: 'Paramètres', apiUsage: 'Utilisation API', whitelist: 'Liste blanche', addToWhitelist: 'Ajouter', active: 'Actif', unconfirmed: 'Non confirmés', confirmed: 'Confirmés', allMessages: 'Tous', noMessages: 'Aucun message', userUpdated: 'Utilisateur mis à jour', addedToWhitelist: 'Ajouté à la liste blanche', settingsSaved: 'Paramètres enregistrés!', apiLimitLabel: 'Limite API quotidienne par utilisateur', adIntervalLabel: 'Intervalle splash pub (min.)', adDurationLabel: 'Durée splash (sec.)', videoUrlLabel: 'URL Vidéo Promo', videoUrlsLabel: 'URLs Vidéo Promo (une par ligne)', adFreeExtLabel: 'Extension sans pub (min.)', monthlyQuotaMaps: 'Quota mensuel Maps', monthlyQuotaGeocode: 'Quota mensuel Geocode', saveSettings: 'Enregistrer', topUsers: 'Top Utilisateurs', dailyLog: 'Journal Quotidien', apiLog: 'Journal API', mapsLoadQuota: 'Maps Load', geocodeQuota: 'Geocoding', costThisMonth: 'Coût ce mois', used: 'utilisé', remaining: 'restant', dailyQuota: 'Quotidien', monthlyQuota: 'Mensuel', actions: 'Actions', time: 'Heure', keySource: 'Clé', resetAllDaily: 'Réinitialiser quotidien (tous)', resetAllMonthly: 'Réinitialiser mensuel (tous)', confirmResetAllDaily: 'Réinitialiser le quota quotidien pour tous ?', confirmResetAllMonthly: 'Réinitialiser le quota mensuel pour tous ?' },
+      quota: { daily: 'Quota Quotidien', monthly: 'Quota Mensuel', remaining: 'restant', noLimits: 'Aucune limite système', todayBreakdown: 'Détails aujourd\'hui', readOnly: 'Quota dépassé — carte en lecture seule', searchBlocked: 'Recherche désactivée — quota dépassé', dailyReached: 'Limite quotidienne atteinte', monthlyReached: 'Limite mensuelle atteinte', dailyMsg: 'Les cartes seront disponibles demain.', monthlyMsg: 'Limite API mensuelle atteinte. Contactez l\'administrateur.' },
       common: {
         cancel: 'Annuler', save: 'Enregistrer', delete: 'Supprimer', confirm: 'Confirmer', loading: 'Chargement...', success: 'Succès', error: 'Erreur', name: 'Nom', message: 'Message', logout: 'Déconnexion'
       },
-      ads: { watchSubscribe: 'Regardez et abonnez-vous', splashMsg: 'Interagissez avec DSIP pour utiliser l\'appli sans publicité', continue: 'Continuer' },
+      ads: { watchSubscribe: 'Regardez et abonnez-vous', splashTitle: 'DSIP MapManager', splashMsg: 'Lancez la vidéo pour utiliser l\'appli sans publicité', playToExtend: 'Lancez la vidéo pour un accès sans publicité', continue: 'Continuer', thankYou: 'Merci ! Sans publicité jusqu\'à {time}' },
+      userKeys: { title: 'Clés API', description: 'Utilisez votre propre clé Google Maps API pour contourner les limites système. L\'utilisation sera facturée sur votre compte Google Cloud.', mapsKey: 'Clé Google Maps API', usingCustom: 'Utilisation de votre clé API', usingSystem: 'Utilisation de la clé système', inactive: 'Clé désactivée', activate: 'Activer', deactivate: 'Désactiver', saved: 'Clé API enregistrée', deleted: 'Clé API supprimée', confirmDelete: 'Supprimer votre clé API ? Vous reviendrez aux limites système.', reloadRequired: 'Les modifications prennent effet après le rechargement de la page.', howToTitle: 'Comment configurer votre clé :', step1: 'Allez sur Google Cloud Console', step2: 'Créez un projet, activez Maps JavaScript API + Geocoding API', step3: 'Créez une clé API', step4: 'Ajoutez maps.djooga.com/* aux restrictions de référent HTTP', step5: 'Collez la clé ci-dessus et enregistrez' },
       pdf: { export: 'Exporter PDF', title: 'Rapport Marqueurs', project: 'Projet', generated: 'Généré', filters: 'Filtres Appliqués', status: 'Statut', condition: 'Condition', search: 'Recherche', all: 'Tous', markerList: 'Liste des Marqueurs', noMarkers: 'Aucun marqueur ne correspond aux filtres' },
       toast: {
         projectCreated: 'Projet créé!', projectDeleted: 'Projet supprimé', markerSaved: 'Marqueur enregistré!', markerDeleted: 'Marqueur supprimé', settingsSaved: 'Paramètres enregistrés', errorGeneric: 'Quelque chose s\'est mal passé', locationNotFound: 'Lieu non trouvé: "{query}"', mapNotReady: 'Carte pas encore chargée.'

@@ -1940,7 +1940,7 @@ textarea.form-input { resize: vertical; }
 .ad-slot { min-height: 250px; background: var(--bg-tertiary); border-radius: var(--radius-sm); }
 
 /* ============================
-   AD SPLASH SCREEN
+   AD SPLASH SCREEN (two-column overlay)
    ============================ */
 .ad-splash {
   position: fixed; inset: 0; z-index: 9999;
@@ -1949,26 +1949,55 @@ textarea.form-input { resize: vertical; }
   backdrop-filter: blur(6px);
 }
 .ad-splash.hidden { display: none; }
-.ad-splash-content {
+.ad-splash-content.splash-two-col {
   background: var(--bg-card);
   border-radius: var(--radius-xl);
-  padding: 24px;
-  max-width: 500px; width: 90%;
-  text-align: center;
+  padding: 0;
+  max-width: 760px; width: 94%;
+  display: flex;
   animation: fadeInScale 0.3s ease-out;
+  overflow: hidden;
 }
-.ad-splash-header {
-  display: flex; align-items: center; gap: 8px; justify-content: center;
-  margin-bottom: 16px;
-  font-size: 13px; color: var(--text-secondary);
+.splash-left {
+  flex: 0 0 240px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 32px 24px;
+  background: var(--bg-tertiary);
+  text-align: center;
+  gap: 12px;
 }
-.ad-splash-timer {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  color: var(--accent);
+.splash-logo svg { filter: drop-shadow(0 2px 8px rgba(79,110,247,0.3)); }
+.splash-title { font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0; }
+.splash-msg { font-size: 13px; color: var(--text-secondary); margin: 0; line-height: 1.4; }
+.splash-countdown-box {
+  display: flex; align-items: center; gap: 4px;
+  font-family: var(--font-mono); font-weight: 700;
+  color: var(--accent); font-size: 18px;
+  background: var(--bg-secondary); padding: 8px 16px;
+  border-radius: var(--radius-md);
 }
-.ad-slot-splash { min-height: 200px; background: var(--bg-tertiary); border-radius: var(--radius-sm); margin-bottom: 16px; }
-.splash-video-container { margin-bottom: 16px; border-radius: var(--radius-md); overflow: hidden; background: #000; }
+.splash-countdown-box .material-icons-round { font-size: 20px; }
+.splash-countdown-num { min-width: 24px; }
+.splash-close-btn { width: 100%; margin-top: 4px; }
+.splash-close-btn:disabled { opacity: 0.4; }
+
+.splash-right {
+  flex: 1;
+  display: flex; flex-direction: column;
+  padding: 24px;
+  justify-content: center;
+  min-height: 320px;
+}
+.splash-video-container {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #000;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .splash-video-container iframe,
 .splash-video-container video {
   width: 100%;
@@ -1976,6 +2005,43 @@ textarea.form-input { resize: vertical; }
   border: none;
   display: block;
   border-radius: var(--radius-md);
+}
+.splash-video-placeholder {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px; padding: 40px;
+  color: rgba(255,255,255,0.5);
+  text-align: center;
+}
+.splash-video-placeholder p { font-size: 13px; margin: 0; }
+.splash-reward-msg {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 12px; padding: 10px 14px;
+  background: rgba(16,185,129,0.1);
+  border: 1px solid var(--success);
+  border-radius: var(--radius-md);
+  font-size: 13px; color: var(--success);
+}
+.splash-reward-msg.hidden { display: none; }
+
+/* Ad-free toast (bottom-right persistent) */
+.adfree-toast {
+  position: fixed; bottom: 20px; right: 20px; z-index: 10000;
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--success);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-size: 13px; color: var(--success);
+  animation: fadeInScale 0.3s ease-out;
+}
+.adfree-toast.hidden { display: none; }
+
+@media (max-width: 640px) {
+  .ad-splash-content.splash-two-col { flex-direction: column; max-width: 95vw; }
+  .splash-left { flex: none; padding: 20px 16px; }
+  .splash-right { min-height: 200px; padding: 16px; }
 }
 
 /* ============================
