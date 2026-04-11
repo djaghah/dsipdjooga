@@ -222,10 +222,17 @@ window.AdminPanel = {
           </div>`;
         area.querySelector('#sidebar-video-thumb').addEventListener('click', () => {
           // Open video in a small embedded player replacing thumbnail
-          area.querySelector('#sidebar-video-thumb').innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&controls=1&modestbranding=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width:100%;aspect-ratio:16/9;border:none;border-radius:var(--radius-md)"></iframe>`;
+          area.querySelector('#sidebar-video-thumb').innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=0&controls=1&modestbranding=1&rel=0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width:100%;aspect-ratio:16/9;border:none;border-radius:var(--radius-md)"></iframe>`;
         });
       } else {
-        area.innerHTML = `<a href="${videoUrl}" target="_blank" class="promo-video-link"><span class="material-icons-round">play_circle</span> Video</a>`;
+        const link = document.createElement('a');
+        link.target = '_blank';
+        link.className = 'promo-video-link';
+        link.textContent = 'Video';
+        try { link.href = new URL(videoUrl).href; } catch { link.href = '#'; }
+        link.insertAdjacentHTML('afterbegin', '<span class="material-icons-round">play_circle</span> ');
+        area.innerHTML = '';
+        area.appendChild(link);
       }
     }
   },

@@ -252,7 +252,7 @@ async function start() {
     // Detailed log entry with key source
     db.run('INSERT INTO api_log (user_id, type, key_source) VALUES (?, ?, ?)', [req.user.id, type, keySource]);
 
-    res.json({ ok: true, hasCustomKey });
+    res.json({ ok: true, hasOwnKeys });
   });
 
   // Get usage summary: this user today + all users this month (for cost display)
