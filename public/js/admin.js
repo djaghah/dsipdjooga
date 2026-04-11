@@ -214,7 +214,6 @@ window.AdminPanel = {
       const ytId = this._getYouTubeId(videoUrl);
       if (ytId) {
         area.innerHTML = `
-          <p style="font-size:11px;color:var(--text-tertiary);margin-bottom:6px" data-i18n="ads.watchSubscribe">${I18n.t('ads.watchSubscribe')}</p>
           <div style="position:relative;border-radius:var(--radius-md);overflow:hidden;cursor:pointer;background:#000" id="sidebar-video-thumb">
             <img src="https://img.youtube.com/vi/${ytId}/mqdefault.jpg" style="width:100%;display:block;opacity:0.8" alt="Video">
             <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
@@ -226,8 +225,7 @@ window.AdminPanel = {
           area.querySelector('#sidebar-video-thumb').innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&controls=1&modestbranding=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width:100%;aspect-ratio:16/9;border:none;border-radius:var(--radius-md)"></iframe>`;
         });
       } else {
-        area.innerHTML = `<p style="font-size:11px;color:var(--text-tertiary);margin-bottom:6px">${I18n.t('ads.watchSubscribe')}</p>
-          <a href="${videoUrl}" target="_blank" class="promo-video-link"><span class="material-icons-round">play_circle</span> Video</a>`;
+        area.innerHTML = `<a href="${videoUrl}" target="_blank" class="promo-video-link"><span class="material-icons-round">play_circle</span> Video</a>`;
       }
     }
   },
