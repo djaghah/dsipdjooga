@@ -683,16 +683,6 @@ window.App = {
       this._leafletMarkers.push(lm);
     });
 
-    // Prevent Leaflet interactions from affecting page layout
-    const pubMapEl = document.getElementById('public-map');
-    if (pubMapEl && !pubMapEl._eventsPatched) {
-      pubMapEl._eventsPatched = true;
-      pubMapEl.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
-      ['click', 'dblclick', 'mousedown', 'mouseup'].forEach(evt => {
-        pubMapEl.addEventListener(evt, (e) => e.stopPropagation());
-      });
-    }
-
     // Admin interactions on Leaflet (right-click + double-click to add markers)
     if (this.user && this.currentProjectRole === 'admin') {
       // Right-click → open context menu (reuse Google Maps context menu)
