@@ -499,7 +499,7 @@ window.Markers = {
     doc.text(project.name, margin, 12);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('DSIP MapManager — ' + I18n.t('pdf.title'), margin, 19);
+    doc.text('Djooga MapManager — ' + I18n.t('pdf.title'), margin, 19);
     doc.text(I18n.t('pdf.generated') + ': ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(), pageW - margin, 12, { align: 'right' });
     doc.text(markers.length + ' markers', pageW - margin, 19, { align: 'right' });
 
@@ -587,7 +587,7 @@ window.Markers = {
           doc.setFontSize(7);
           doc.setTextColor(...gray);
           doc.text(
-            `DSIP MapManager — ${project.name} — Page ${doc.internal.getCurrentPageInfo().pageNumber}`,
+            `Djooga MapManager — ${project.name} — Page ${doc.internal.getCurrentPageInfo().pageNumber}`,
             pageW / 2, pageH - 6, { align: 'center' }
           );
         }

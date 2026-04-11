@@ -46,6 +46,9 @@ window.App = {
     // Hide sidebar search/filters (no geocoding for public)
     document.getElementById('map-search-box').classList.add('hidden');
     document.getElementById('coord-input').classList.add('hidden');
+    // Show SEO content for unauthenticated visitors (also visible to crawlers)
+    const seoLanding = document.getElementById('seo-landing');
+    if (seoLanding) seoLanding.style.display = '';
     // Load public projects
     this.loadPublicProjects();
   },

@@ -192,7 +192,7 @@ window.I18n = {
       },
       ads: {
         watchSubscribe: 'Watch and subscribe',
-        splashTitle: 'DSIP MapManager',
+        splashTitle: 'Djooga MapManager',
         splashMsg: 'Play the video to use the app ad-free',
         playToExtend: 'Play the video to get ad-free access',
         continue: 'Continue',
@@ -442,7 +442,7 @@ window.I18n = {
       },
       ads: {
         watchSubscribe: 'Urmărește și abonează-te',
-        splashTitle: 'DSIP MapManager',
+        splashTitle: 'Djooga MapManager',
         splashMsg: 'Pornește videoclipul pentru a folosi aplicația fără reclame',
         playToExtend: 'Pornește videoclipul pentru acces fără reclame',
         continue: 'Continuă',
@@ -591,7 +591,7 @@ window.I18n = {
       common: {
         cancel: 'Abbrechen', save: 'Speichern', delete: 'Löschen', confirm: 'Bestätigen', loading: 'Laden...', success: 'Erfolg', error: 'Fehler', name: 'Name', message: 'Nachricht', logout: 'Abmelden'
       },
-      ads: { watchSubscribe: 'Ansehen und abonnieren', splashTitle: 'DSIP MapManager', splashMsg: 'Video abspielen, um die App werbefrei zu nutzen', playToExtend: 'Video abspielen für werbefreien Zugang', continue: 'Weiter', thankYou: 'Danke! Werbefrei bis {time}' },
+      ads: { watchSubscribe: 'Ansehen und abonnieren', splashTitle: 'Djooga MapManager', splashMsg: 'Video abspielen, um die App werbefrei zu nutzen', playToExtend: 'Video abspielen für werbefreien Zugang', continue: 'Weiter', thankYou: 'Danke! Werbefrei bis {time}' },
       userKeys: { title: 'API-Schlüssel', description: 'Verwenden Sie Ihren eigenen Google Maps API-Schlüssel, um Systemlimits zu umgehen. Die Nutzung wird Ihrem Google Cloud-Konto berechnet.', mapsKey: 'Google Maps API-Schlüssel', usingCustom: 'Eigener API-Schlüssel aktiv', usingSystem: 'System-API-Schlüssel', inactive: 'Schlüssel deaktiviert', activate: 'Aktivieren', deactivate: 'Deaktivieren', saved: 'API-Schlüssel gespeichert', deleted: 'API-Schlüssel entfernt', confirmDelete: 'API-Schlüssel entfernen? Sie kehren zu den Systemlimits zurück.', reloadRequired: 'Änderungen werden nach dem Neuladen wirksam.', howToTitle: 'So richten Sie Ihren Schlüssel ein:', step1: 'Gehen Sie zur Google Cloud Console', step2: 'Erstellen Sie ein Projekt, aktivieren Sie Maps JavaScript API + Geocoding API', step3: 'Erstellen Sie einen API-Schlüssel', step4: 'Fügen Sie maps.djooga.com/* zu den HTTP-Referrer-Beschränkungen hinzu', step5: 'Fügen Sie den Schlüssel oben ein und speichern Sie' },
       pdf: { export: 'PDF exportieren', title: 'Marker-Bericht', project: 'Projekt', generated: 'Erstellt', filters: 'Angewandte Filter', status: 'Status', condition: 'Zustand', search: 'Suche', all: 'Alle', markerList: 'Markerliste', noMarkers: 'Keine Marker entsprechen den Filtern' },
       toast: {
@@ -684,7 +684,7 @@ window.I18n = {
       common: {
         cancel: 'Annuler', save: 'Enregistrer', delete: 'Supprimer', confirm: 'Confirmer', loading: 'Chargement...', success: 'Succès', error: 'Erreur', name: 'Nom', message: 'Message', logout: 'Déconnexion'
       },
-      ads: { watchSubscribe: 'Regardez et abonnez-vous', splashTitle: 'DSIP MapManager', splashMsg: 'Lancez la vidéo pour utiliser l\'appli sans publicité', playToExtend: 'Lancez la vidéo pour un accès sans publicité', continue: 'Continuer', thankYou: 'Merci ! Sans publicité jusqu\'à {time}' },
+      ads: { watchSubscribe: 'Regardez et abonnez-vous', splashTitle: 'Djooga MapManager', splashMsg: 'Lancez la vidéo pour utiliser l\'appli sans publicité', playToExtend: 'Lancez la vidéo pour un accès sans publicité', continue: 'Continuer', thankYou: 'Merci ! Sans publicité jusqu\'à {time}' },
       userKeys: { title: 'Clés API', description: 'Utilisez votre propre clé Google Maps API pour contourner les limites système. L\'utilisation sera facturée sur votre compte Google Cloud.', mapsKey: 'Clé Google Maps API', usingCustom: 'Utilisation de votre clé API', usingSystem: 'Utilisation de la clé système', inactive: 'Clé désactivée', activate: 'Activer', deactivate: 'Désactiver', saved: 'Clé API enregistrée', deleted: 'Clé API supprimée', confirmDelete: 'Supprimer votre clé API ? Vous reviendrez aux limites système.', reloadRequired: 'Les modifications prennent effet après le rechargement de la page.', howToTitle: 'Comment configurer votre clé :', step1: 'Allez sur Google Cloud Console', step2: 'Créez un projet, activez Maps JavaScript API + Geocoding API', step3: 'Créez une clé API', step4: 'Ajoutez maps.djooga.com/* aux restrictions de référent HTTP', step5: 'Collez la clé ci-dessus et enregistrez' },
       pdf: { export: 'Exporter PDF', title: 'Rapport Marqueurs', project: 'Projet', generated: 'Généré', filters: 'Filtres Appliqués', status: 'Statut', condition: 'Condition', search: 'Recherche', all: 'Tous', markerList: 'Liste des Marqueurs', noMarkers: 'Aucun marqueur ne correspond aux filtres' },
       toast: {
