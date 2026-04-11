@@ -686,11 +686,12 @@ window.App = {
       this._leafletMarkers.push(lm);
     });
 
-    // Prevent Leaflet clicks from propagating to document (would close dropdowns/header)
-    const mapEl = document.getElementById('public-map');
-    if (mapEl) {
-      mapEl.addEventListener('click', (e) => e.stopPropagation());
-      mapEl.addEventListener('dblclick', (e) => e.stopPropagation());
+    // Prevent Leaflet interactions from affecting page layout
+    const pubMapEl = document.getElementById('public-map');
+    if (pubMapEl) {
+      ['click', 'dblclick', 'mousedown', 'mouseup', 'touchstart', 'touchend'].forEach(evt => {
+        pubMapEl.addEventListener(evt, (e) => e.stopPropagation(), true);
+      });
     }
 
     // Admin interactions on Leaflet (right-click + double-click to add markers)
