@@ -427,31 +427,41 @@ window.App = {
 
     // Build content
     let html = '';
+    const isSuperAdmin = this._user_is_super_admin();
 
-    // --- My quota (daily + monthly) - visible to all users ---
-    const dailyPct = d.dailyLimit > 0 ? Math.min(100, Math.round(d.myTodayUsed / d.dailyLimit * 100)) : 0;
-    const monthPct = d.monthlyLimit > 0 ? Math.min(100, Math.round(d.myMonthUsed / d.monthlyLimit * 100)) : 0;
-    const dailyColor = dailyPct >= 90 ? 'var(--danger)' : dailyPct >= 70 ? 'var(--warning)' : 'var(--accent)';
-    const monthColor = monthPct >= 90 ? 'var(--danger)' : monthPct >= 70 ? 'var(--warning)' : 'var(--accent)';
+    // --- My quota (daily + monthly) ---
+    if (isSuperAdmin) {
+      // Super admin has no limits
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:14px;margin-bottom:20px;background:rgba(16,185,129,0.1);border:1px solid var(--success);border-radius:var(--radius-md)">
+        <span class="material-icons-round" style="color:var(--success)">all_inclusive</span>
+        <span style="font-size:14px;font-weight:600;color:var(--success)">Super Admin — Unlimited</span>
+        <span style="font-size:12px;color:var(--text-tertiary);margin-left:auto">${d.myTodayUsed} calls today</span>
+      </div>`;
+    } else {
+      const dailyPct = d.dailyLimit > 0 ? Math.min(100, Math.round(d.myTodayUsed / d.dailyLimit * 100)) : 0;
+      const monthPct = d.monthlyLimit > 0 ? Math.min(100, Math.round(d.myMonthUsed / d.monthlyLimit * 100)) : 0;
+      const dailyColor = dailyPct >= 90 ? 'var(--danger)' : dailyPct >= 70 ? 'var(--warning)' : 'var(--accent)';
+      const monthColor = monthPct >= 90 ? 'var(--danger)' : monthPct >= 70 ? 'var(--warning)' : 'var(--accent)';
 
-    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-      <div style="background:var(--bg-tertiary);padding:16px;border-radius:var(--radius-md)">
-        <div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:6px">${I18n.t('quota.daily')}</div>
-        <div style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:${dailyColor}">${d.myTodayUsed} / ${d.dailyLimit}</div>
-        <div style="margin-top:6px;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden">
-          <div style="height:100%;width:${dailyPct}%;background:${dailyColor};border-radius:3px;transition:width 0.3s"></div>
+      html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        <div style="background:var(--bg-tertiary);padding:16px;border-radius:var(--radius-md)">
+          <div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:6px">${I18n.t('quota.daily')}</div>
+          <div style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:${dailyColor}">${d.myTodayUsed} / ${d.dailyLimit}</div>
+          <div style="margin-top:6px;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${dailyPct}%;background:${dailyColor};border-radius:3px"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">${dailyPct}% ${I18n.t('admin.used')} | ${Math.max(0, d.dailyLimit - d.myTodayUsed)} ${I18n.t('quota.remaining')}</div>
         </div>
-        <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">${dailyPct}% ${I18n.t('admin.used')} | ${Math.max(0, d.dailyLimit - d.myTodayUsed)} ${I18n.t('quota.remaining')}</div>
-      </div>
-      <div style="background:var(--bg-tertiary);padding:16px;border-radius:var(--radius-md)">
-        <div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:6px">${I18n.t('quota.monthly')}</div>
-        <div style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:${monthColor}">${d.myMonthUsed} / ${d.monthlyLimit}</div>
-        <div style="margin-top:6px;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden">
-          <div style="height:100%;width:${monthPct}%;background:${monthColor};border-radius:3px;transition:width 0.3s"></div>
+        <div style="background:var(--bg-tertiary);padding:16px;border-radius:var(--radius-md)">
+          <div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:6px">${I18n.t('quota.monthly')}</div>
+          <div style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:${monthColor}">${d.myMonthUsed} / ${d.monthlyLimit}</div>
+          <div style="margin-top:6px;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${monthPct}%;background:${monthColor};border-radius:3px"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">${monthPct}% ${I18n.t('admin.used')} | ${Math.max(0, d.monthlyLimit - d.myMonthUsed)} ${I18n.t('quota.remaining')}</div>
         </div>
-        <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">${monthPct}% ${I18n.t('admin.used')} | ${Math.max(0, d.monthlyLimit - d.myMonthUsed)} ${I18n.t('quota.remaining')}</div>
-      </div>
-    </div>`;
+      </div>`;
+    }
 
     // Custom key badge
     if (d.hasCustomKey) {
@@ -474,7 +484,6 @@ window.App = {
     }
 
     // --- Platform cost (visible to all, details for super admin) ---
-    const isSuperAdmin = this._user_is_super_admin();
     html += `<div style="text-align:center;margin-bottom:16px;padding:12px;background:var(--bg-tertiary);border-radius:var(--radius-md)">
       <div style="font-size:24px;font-weight:700;font-family:var(--font-mono);color:var(--accent)">$${d.totalCostUSD} / $${d.creditUSD}</div>
       <div style="font-size:11px;color:var(--text-tertiary)">${I18n.t('admin.costThisMonth')}</div>
