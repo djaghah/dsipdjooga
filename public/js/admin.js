@@ -105,7 +105,9 @@ window.AdminPanel = {
   applyAdVisibility() {
     const adFree = this.isAdFree();
     const sidebar = document.getElementById('ads-sidebar');
-    if (adFree) {
+    // Only show ads when: not ad-free AND a project with markers is loaded (real content)
+    const hasContent = App.currentProject && Markers?.list?.length > 0;
+    if (adFree || !hasContent) {
       sidebar.classList.add('hidden');
       this.stopSplashTimer();
     } else {

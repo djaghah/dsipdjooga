@@ -18,7 +18,7 @@ window.App = {
       this.config = await res.json();
     } catch { this.config = { mapsApiKey: '', mapsQuotaDaily: 900 }; }
 
-    // Check auth
+    // Check auth — dashboard layout always visible
     try {
       const res = await fetch('/auth/me');
       if (res.ok) {
@@ -33,13 +33,25 @@ window.App = {
   },
 
   showLogin() {
-    document.getElementById('view-login').classList.add('active');
-    document.getElementById('view-dashboard').classList.remove('active');
+    // Dashboard layout stays visible — show login overlay on map area
+    document.getElementById('view-dashboard').classList.add('active');
+    document.getElementById('view-login').classList.remove('active');
+    document.getElementById('map-overlay-login').classList.remove('hidden');
+    document.getElementById('map-overlay-no-project').classList.add('hidden');
+    // Disable header interactions for non-authenticated users
+    document.querySelector('.app-header').classList.add('disabled-header');
   },
 
   async showDashboard() {
     document.getElementById('view-login').classList.remove('active');
     document.getElementById('view-dashboard').classList.add('active');
+    document.getElementById('map-overlay-login').classList.add('hidden');
+    document.querySelector('.app-header').classList.remove('disabled-header');
+    // Hide SEO landing content for authenticated users
+    const seoLanding = document.getElementById('seo-landing');
+    if (seoLanding) seoLanding.style.display = 'none';
+    // Show no-project overlay until user selects a project
+    document.getElementById('map-overlay-no-project').classList.remove('hidden');
 
     // Set user info
     const isSuperAdmin = this.user.role === 'admin' && this.user.email === 'bogdansarac@gmail.com';
@@ -531,6 +543,9 @@ window.App = {
 
     // Load markers for this project
     await Markers.loadForProject(project.id);
+
+    // Re-evaluate ad visibility now that we have content
+    AdminPanel.applyAdVisibility();
 
     // Navigate map to project center AFTER layout has settled
     // (ads sidebar may change map container size — ResizeObserver handles resize,

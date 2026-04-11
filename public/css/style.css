@@ -899,6 +899,26 @@ input, select, textarea, button {
   color: var(--text-tertiary);
 }
 
+/* Disabled header when not authenticated */
+.disabled-header {
+  pointer-events: none;
+  opacity: 0.5;
+}
+.disabled-header .btn-google,
+.disabled-header a[href="/auth/google"] {
+  pointer-events: auto;
+}
+
+/* Login overlay on map area */
+#map-overlay-login {
+  background: var(--bg-primary);
+  z-index: 10;
+}
+#map-overlay-login .btn-google {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
 /* Map controls */
 .map-controls {
   position: absolute;
