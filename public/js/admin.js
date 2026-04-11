@@ -125,38 +125,63 @@ window.AdminPanel = {
   },
 
   initAds() {
+    // AdSense (optional — may not be approved yet)
     const client = this.settings.google_ads_client;
-    if (!client) return;
-
-    // Load AdSense script if not loaded
-    if (!document.getElementById('adsense-script')) {
-      const s = document.createElement('script');
-      s.id = 'adsense-script';
-      s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
-      s.async = true;
-      s.crossOrigin = 'anonymous';
-      document.head.appendChild(s);
-    }
-
-    // Configure slots
-    const sidebarSlot = this.settings.google_ads_slot_sidebar;
-    if (sidebarSlot) {
-      const ins = document.querySelector('#ad-slot-sidebar .adsbygoogle');
-      if (ins && !ins.dataset.configured) {
-        ins.dataset.adClient = client;
-        ins.dataset.adSlot = sidebarSlot;
-        ins.dataset.configured = '1';
-        try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch {}
+    if (client) {
+      if (!document.getElementById('adsense-script')) {
+        const s = document.createElement('script');
+        s.id = 'adsense-script';
+        s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
+        s.async = true;
+        s.crossOrigin = 'anonymous';
+        document.head.appendChild(s);
+      }
+      const sidebarSlot = this.settings.google_ads_slot_sidebar;
+      if (sidebarSlot) {
+        const ins = document.querySelector('#ad-slot-sidebar .adsbygoogle');
+        if (ins && !ins.dataset.configured) {
+          ins.dataset.adClient = client;
+          ins.dataset.adSlot = sidebarSlot;
+          ins.dataset.configured = '1';
+          try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch {}
+        }
       }
     }
 
-    // Promo video
-    const videoUrl = this.settings.promo_video_url;
+    // Promo video (from video list or single URL)
+    let videoUrl = null;
+    try {
+      const urls = JSON.parse(this.settings.promo_video_urls || '[]');
+      if (Array.isArray(urls) && urls.length > 0) {
+        const valid = urls.filter(u => u && u.trim());
+        if (valid.length > 0) videoUrl = valid[0].trim(); // Show first video in sidebar
+      }
+    } catch {}
+    if (!videoUrl) videoUrl = this.settings.promo_video_url || null;
+
     if (videoUrl) {
-      document.getElementById('promo-video-area').classList.remove('hidden');
-      const link = document.getElementById('promo-video-link');
-      link.href = videoUrl;
-      link.querySelector('span:last-child') || (link.innerHTML = '<span class="material-icons-round">play_circle</span> Urmărește Video');
+      const area = document.getElementById('promo-video-area');
+      area.classList.remove('hidden');
+
+      // Build video preview with play button
+      const ytId = this._getYouTubeId(videoUrl);
+      if (ytId) {
+        area.innerHTML = `
+          <p style="font-size:11px;color:var(--text-tertiary);margin-bottom:6px" data-i18n="ads.watchSubscribe">${I18n.t('ads.watchSubscribe')}</p>
+          <div style="position:relative;border-radius:var(--radius-md);overflow:hidden;cursor:pointer;background:#000" id="sidebar-video-thumb">
+            <img src="https://img.youtube.com/vi/${ytId}/mqdefault.jpg" style="width:100%;display:block;opacity:0.8" alt="Video">
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+              <span class="material-icons-round" style="font-size:48px;color:white;text-shadow:0 2px 8px rgba(0,0,0,0.5)">play_circle</span>
+            </div>
+          </div>`;
+        area.querySelector('#sidebar-video-thumb').addEventListener('click', () => {
+          // Open video in a small embedded player replacing thumbnail
+          area.querySelector('#sidebar-video-thumb').innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&controls=1&modestbranding=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width:100%;aspect-ratio:16/9;border:none;border-radius:var(--radius-md)"></iframe>`;
+        });
+      } else {
+        area.innerHTML = `<p style="font-size:11px;color:var(--text-tertiary);margin-bottom:6px">${I18n.t('ads.watchSubscribe')}</p>
+          <a href="${videoUrl}" target="_blank" class="promo-video-link"><span class="material-icons-round">play_circle</span> Video</a>`;
+      }
     }
   },
 

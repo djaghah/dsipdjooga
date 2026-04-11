@@ -578,7 +578,9 @@ window.Markers = {
           cellPadding: 2.5,
           lineColor: [220, 222, 230],
           lineWidth: 0.3,
-          textColor: dark
+          textColor: dark,
+          overflow: 'linebreak',
+          cellWidth: 'wrap'
         },
         headStyles: {
           fillColor: accent,
@@ -591,9 +593,15 @@ window.Markers = {
         },
         columnStyles: {
           0: { cellWidth: 8, halign: 'center' },
-          1: { cellWidth: 42 },
+          1: { cellWidth: 50, overflow: 'linebreak' },
+          2: { cellWidth: 18 },
+          3: { cellWidth: 18 },
+          4: { cellWidth: 28, overflow: 'linebreak' },
           5: { halign: 'right', cellWidth: 22 },
-          9: { fontSize: 7, cellWidth: 32 }
+          6: { cellWidth: 22 },
+          7: { cellWidth: 22 },
+          8: { cellWidth: 22 },
+          9: { fontSize: 7, cellWidth: 34 }
         },
         didDrawPage: (data) => {
           // Footer on each page
