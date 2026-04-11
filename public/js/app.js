@@ -664,9 +664,6 @@ window.App = {
       dragging: true
     }).setView([project.center_lat || 45.7983, project.center_lng || 24.1256], project.default_zoom || 14);
 
-    // Prevent wheel events from bubbling to page (causes page zoom)
-    const pubMapEl = document.getElementById('public-map');
-    pubMapEl.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19,
@@ -688,9 +685,11 @@ window.App = {
 
     // Prevent Leaflet interactions from affecting page layout
     const pubMapEl = document.getElementById('public-map');
-    if (pubMapEl) {
-      ['click', 'dblclick', 'mousedown', 'mouseup', 'touchstart', 'touchend'].forEach(evt => {
-        pubMapEl.addEventListener(evt, (e) => e.stopPropagation(), true);
+    if (pubMapEl && !pubMapEl._eventsPatched) {
+      pubMapEl._eventsPatched = true;
+      pubMapEl.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
+      ['click', 'dblclick', 'mousedown', 'mouseup'].forEach(evt => {
+        pubMapEl.addEventListener(evt, (e) => e.stopPropagation());
       });
     }
 
