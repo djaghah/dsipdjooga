@@ -114,7 +114,12 @@ window.App = {
     this.initLogout();
     this.initModals();
     this.initUsageModal();
-    this.initApiKeys();
+    // API Keys menu only if user has google_api_mode = own
+    if (this.config.googleApiMode === 'own') {
+      this.initApiKeys();
+    } else {
+      document.getElementById('btn-api-keys')?.classList.add('hidden');
+    }
 
     // Load projects
     Projects.loadAll();

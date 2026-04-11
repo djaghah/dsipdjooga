@@ -417,8 +417,8 @@ function seed() {
     [spId, 'bogdansarac@gmail.com', uid, 'admin', uid]);
 
   // 3b. Create second user: vivianasarac@gmail.com (admin on Pompieri, viewer on Semne)
-  run(`INSERT INTO users (google_id, email, name, avatar, role, is_approved, subscription_until, ad_free_until)
-       VALUES ('seed_viviana', 'vivianasarac@gmail.com', 'Viviana Sarac', '', 'user', 1, '2099-12-31', '2099-12-31')`);
+  run(`INSERT INTO users (google_id, email, name, avatar, role, is_approved, subscription_until)
+       VALUES ('seed_viviana', 'vivianasarac@gmail.com', 'Viviana Sarac', '', 'user', 1, '2099-12-31')`);
   const viviana = get('SELECT id FROM users WHERE email = ?', ['vivianasarac@gmail.com']);
   if (viviana) {
     run('INSERT INTO project_members (project_id, user_email, user_id, role, invited_by) VALUES (?, ?, ?, ?, ?)',
@@ -426,6 +426,26 @@ function seed() {
     run('INSERT INTO project_members (project_id, user_email, user_id, role, invited_by) VALUES (?, ?, ?, ?, ?)',
       [spId, 'vivianasarac@gmail.com', viviana.id, 'viewer', uid]);
   }
+
+  // 3c. Create third user: remussarac@gmail.com (viewer on Pompieri)
+  run(`INSERT INTO users (google_id, email, name, avatar, role, is_approved, subscription_until)
+       VALUES ('seed_remus', 'remussarac@gmail.com', 'Remus Sarac', '', 'user', 1, '2099-12-31')`);
+  const remus = get('SELECT id FROM users WHERE email = ?', ['remussarac@gmail.com']);
+  if (remus) {
+    run('INSERT INTO project_members (project_id, user_email, user_id, role, invited_by) VALUES (?, ?, ?, ?, ?)',
+      [fpId, 'remussarac@gmail.com', remus.id, 'viewer', uid]);
+  }
+
+  // 3d. Seed promo video URLs (3 YouTube music videos)
+  try {
+    db.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('promo_video_urls', ?)", [
+      JSON.stringify([
+        'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        'https://www.youtube.com/watch?v=fJ9rUzIMcZQ',
+        'https://www.youtube.com/watch?v=kJQP7kiw5Fk'
+      ])
+    ]);
+  } catch {}
 
   // ---- Sibiu area coordinates ----
   // Center: 45.7983, 24.1256

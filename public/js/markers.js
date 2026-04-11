@@ -124,7 +124,15 @@ window.Markers = {
 
         container.querySelectorAll('.marker-card').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
-        MapManager.focusMarker(id);
+        // Focus on Leaflet or Google Maps depending on active provider
+        if (App._useLeaflet && App._leafletMap) {
+          App._leafletMap.setView([marker.lat, marker.lng], 17);
+          App._leafletMarkers?.forEach(lm => {
+            if (Math.abs(lm.getLatLng().lat - marker.lat) < 0.00001 && Math.abs(lm.getLatLng().lng - marker.lng) < 0.00001) lm.openPopup();
+          });
+        } else {
+          MapManager.focusMarker(id);
+        }
       });
 
       // Double-click on card → open edit (admin only)
