@@ -70,8 +70,14 @@ window.App = {
 
     // Set user info
     const isSuperAdmin = this.user.role === 'admin' && this.user.email === 'bogdansarac@gmail.com';
-    document.getElementById('user-name').innerHTML = (this.user.name || 'User') +
-      (isSuperAdmin ? ' <span style="font-size:9px;color:#e74c3c;font-weight:700">SUPER</span>' : '');
+    const nameEl = document.getElementById('user-name');
+    nameEl.textContent = this.user.name || 'User';
+    if (isSuperAdmin) {
+      const badge = document.createElement('span');
+      badge.style.cssText = 'font-size:9px;color:#e74c3c;font-weight:700;margin-left:4px';
+      badge.textContent = 'SUPER';
+      nameEl.appendChild(badge);
+    }
     const avatarImg = document.getElementById('user-avatar');
     if (this.user.avatar) {
       avatarImg.src = this.user.avatar;

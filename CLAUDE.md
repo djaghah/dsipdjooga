@@ -41,7 +41,7 @@ Node.js client-server application for geographic project management with Google 
 
 ## Database Schema
 - `users` — Google OAuth users (google_id, email, name, avatar, locale, theme, role, is_approved, subscription_until, ad_free_until)
-- `projects` — User projects (name, description, avatar_index, icon_type, center_lat, center_lng, default_zoom)
+- `projects` — User projects (name, description, avatar_index, icon_type, is_public, center_lat, center_lng, default_zoom)
 - `project_members` — Project-level roles (user_email, user_id, project_id, role: admin/viewer, invited_by)
 - `markers` — Geolocated markers with metadata (lat/lng, icon_type, icon_index, status, condition, dates, cost, responsible, custom_data JSON)
 - `marker_images` — Uploaded photos linked to markers
@@ -62,13 +62,35 @@ Node.js client-server application for geographic project management with Google 
 - **Admin/User toggle**: Super admin can switch to "USER" view in header to test user experience (sees ads, rate limits don't apply but UI behaves as user)
 - **Inactive users**: Super admin can set is_approved=0 → user cannot access platform
 
+## Public Projects
+- Super admin can mark any project as `is_public` (toggle via admin API)
+- **Unauthenticated users** see public projects in the dropdown and can view them
+- Public view uses **Leaflet + OpenStreetMap** (100% free, zero Google API calls)
+- Login button in header (where user menu would be), not a blocking overlay
+- Sidebar shows read-only marker list; click marker = zoom on Leaflet map
+- All API-consuming controls hidden: search, geocoding, admin mode, POI toggle
+- **Zero cost**: no Google Maps JS API, no geocoding, no Places API for public view
+- After login: switches to Google Maps with full features
+
 ## Access Control Flow
-1. User clicks "Sign in with Google" → always shows account picker (prompt: select_account)
-2. Auth checks: is email in whitelist OR existing user? If not → create user with is_approved=0
-3. If not approved → "Acces Restricționat" page with contact form, NO map loaded (0 API cost)
-4. If subscription_until expired → "Abonament Expirat" page with renewal request form
-5. If approved + active subscription → Dashboard
-6. Super admin (bogdansarac@gmail.com) always passes all checks
+1. Unauthenticated user → sees dashboard layout with public projects (Leaflet map, zero API cost)
+2. User clicks "Sign in with Google" → always shows account picker (prompt: select_account)
+3. Auth checks: is email in whitelist OR existing user? If not → create user with is_approved=0
+4. If not approved → "Acces Restricționat" page with contact form, NO map loaded (0 API cost)
+5. If subscription_until expired → "Abonament Expirat" page with renewal request form
+6. If approved + active subscription → Dashboard with Google Maps
+7. Super admin (bogdansarac@gmail.com) always passes all checks
+
+## Security
+- **Security headers**: X-Frame-Options SAMEORIGIN, X-XSS-Protection, X-Content-Type-Options nosniff, Referrer-Policy strict-origin, Permissions-Policy, HSTS in production
+- **Session cookies**: httpOnly, sameSite: lax, secure in production
+- **Rate limiting**: Global 120 req/min per IP, strict 30/15min for contact form, 60/min for public projects
+- **API key protection**: `/api/config` returns empty key for unauthenticated users — API key only served to authenticated users
+- **CSRF prevention**: SameSite cookie attribute (lax) prevents cross-site request forgery
+- **XSS prevention**: User names rendered via textContent (not innerHTML), SQL queries parameterized
+- **YouTube embed**: Proper allow attributes (accelerometer, autoplay, clipboard-write, encrypted-media, gyroscope, picture-in-picture)
+- **Docker**: Non-root, read-only fs, dropped capabilities, no-new-privileges, resource limits
+- **Uploads**: Scoped per user (`/uploads/:userId`), auth + ownership check
 
 ## API Rate Limiting & Quotas
 - **Daily quota**: default 10/day per user, configurable from admin

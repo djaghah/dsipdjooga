@@ -215,7 +215,7 @@ window.AdminPanel = {
     const ytId = this._getYouTubeId(videoUrl);
     if (ytId) {
       // YouTube embed — NO autoplay, WITH controls, user clicks play
-      videoContainer.innerHTML = `<iframe id="splash-yt-frame" src="https://www.youtube.com/embed/${ytId}?autoplay=0&controls=1&modestbranding=1&rel=0&showinfo=0&enablejsapi=1&origin=${location.origin}" allow="encrypted-media" allowfullscreen></iframe>`;
+      videoContainer.innerHTML = `<iframe id="splash-yt-frame" src="https://www.youtube.com/embed/${ytId}?autoplay=0&controls=1&modestbranding=1&rel=0&showinfo=0&enablejsapi=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
       // Detect play via YouTube IFrame API postMessage
       this._setupYouTubePlayDetection();
     } else if (videoUrl.match(/\.(mp4|webm|ogg)(\?|$)/i)) {

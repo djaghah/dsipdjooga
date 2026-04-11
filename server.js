@@ -3,6 +3,7 @@ const express = require('express');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const passport = require('passport');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const fs = require('fs');
 const db = require('./server/db');
@@ -10,6 +11,7 @@ const configureAuth = require('./server/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const IS_PROD = process.env.NODE_ENV === 'production' || process.env.BASE_URL?.startsWith('https');
 
 // Ensure directories exist
 ['uploads', 'data', 'data/sessions'].forEach(dir => {
@@ -21,11 +23,30 @@ async function start() {
   // Initialize database (async for sql.js)
   await db.init();
 
+  // Security headers (helmet-like, no extra dependency)
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+    if (IS_PROD) {
+      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+    next();
+  });
+
+  // Rate limiting — global (30 req/s per IP) + stricter for public endpoints
+  app.use(rateLimit({ windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false }));
+  const strictLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, message: { error: 'Too many requests' } });
+  app.use('/api/contact-request', strictLimiter);
+  app.use('/api/public-projects', rateLimit({ windowMs: 60 * 1000, max: 60 }));
+
   // Middleware
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
 
-  // Session
+  // Session (secure cookies in production)
   app.use(session({
     store: new FileStore({
       path: path.join(__dirname, 'data', 'sessions'),
@@ -36,7 +57,12 @@ async function start() {
     secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }
+    cookie: {
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: IS_PROD
+    }
   }));
 
   // Passport
@@ -122,21 +148,24 @@ async function start() {
     res.json(obj);
   });
 
-  // API config endpoint (safe public data)
+  // API config endpoint — API key ONLY for authenticated users
   app.get('/api/config', (req, res) => {
+    // Unauthenticated users get no API key (public view uses Leaflet/OSM, zero cost)
+    if (!req.isAuthenticated()) {
+      return res.json({ mapsApiKey: '', isCustomKey: false, mapsQuotaDaily: 0 });
+    }
+
     let mapsApiKey = process.env.GOOGLE_MAPS_API_KEY || '';
     let isCustomKey = false;
 
-    // If user is authenticated and has custom API key active, use theirs
-    if (req.isAuthenticated()) {
-      const userKey = db.get(
-        'SELECT maps_api_key, is_active FROM user_api_keys WHERE user_id = ? AND is_active = 1',
-        [req.user.id]
-      );
-      if (userKey?.maps_api_key) {
-        mapsApiKey = userKey.maps_api_key;
-        isCustomKey = true;
-      }
+    // If user has custom API key active, use theirs
+    const userKey = db.get(
+      'SELECT maps_api_key, is_active FROM user_api_keys WHERE user_id = ? AND is_active = 1',
+      [req.user.id]
+    );
+    if (userKey?.maps_api_key) {
+      mapsApiKey = userKey.maps_api_key;
+      isCustomKey = true;
     }
 
     res.json({
