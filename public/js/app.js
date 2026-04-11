@@ -126,23 +126,18 @@ window.App = {
     // Load projects
     Projects.loadAll();
 
-    // Init map — determine provider based on config
+    // Init map — ALWAYS start on OSM (zero API cost), toggle to Google only on user action
     this._canUseGoogle = this.config.useGoogleMaps && !!this.config.mapsApiKey;
-    // Hide usage bar if no Google API (OSM users don't consume API)
-    if (!this._canUseGoogle) {
-      document.querySelector('.maps-usage')?.classList.add('hidden');
-    }
+    // Hide usage bar (OSM doesn't consume API; shown only when on Google)
+    document.querySelector('.maps-usage')?.classList.add('hidden');
     if (this._canUseGoogle) {
-      // Show toggle button (user can switch between Google and OSM)
+      // Show toggle button (user can switch to Google when they want)
       const toggleBtn = document.getElementById('btn-toggle-map-provider');
       toggleBtn.classList.remove('hidden');
       toggleBtn.addEventListener('click', () => this.toggleMapProvider());
-      // Start with Google Maps
-      this.setMapProvider('google');
-    } else {
-      // OSM only — no toggle visible
-      this.setMapProvider('osm');
     }
+    // Always start on OSM
+    this.setMapProvider('osm');
 
     // Update usage
     this.updateMapsUsage();
