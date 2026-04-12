@@ -10,11 +10,16 @@ module.exports = function(passport) {
     prompt: 'select_account'
   }));
 
-  // Google OAuth callback
+  // Google OAuth callback — H3 FIX: regenerate session to prevent session fixation
   router.get('/google/callback',
     passport.authenticate('google', { failureRedirect: '/?error=auth_failed' }),
     (req, res) => {
-      res.redirect('/#/dashboard');
+      const userId = req.user.id;
+      req.session.regenerate((err) => {
+        if (err) return res.redirect('/?error=session_error');
+        req.session.passport = { user: userId };
+        req.session.save(() => res.redirect('/#/dashboard'));
+      });
     }
   );
 

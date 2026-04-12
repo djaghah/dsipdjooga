@@ -20,6 +20,12 @@ const IS_PROD = process.env.NODE_ENV === 'production' || process.env.BASE_URL?.s
 });
 
 async function start() {
+  // C5 FIX: Fail on missing SESSION_SECRET in production
+  if (IS_PROD && !process.env.SESSION_SECRET) {
+    console.error('FATAL: SESSION_SECRET environment variable is required in production');
+    process.exit(1);
+  }
+
   // Trust nginx reverse proxy (needed for secure cookies behind SSL proxy)
   if (IS_PROD) app.set('trust proxy', 1);
 
@@ -46,7 +52,7 @@ async function start() {
   app.use('/api/public-projects', rateLimit({ windowMs: 60 * 1000, max: 60 }));
 
   // Middleware
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true }));
 
   // Session (secure cookies in production)
@@ -102,12 +108,24 @@ async function start() {
     express.static(path.join(__dirname, 'uploads', req.params.userId))(req, res, next);
   });
 
+  // H1 FIX: Server-side approval + subscription check for protected routes
+  function requireApproved(req, res, next) {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+    // Super admin bypasses all checks
+    if (req.user.role === 'admin' && req.user.email === 'bogdansarac@gmail.com') return next();
+    if (!req.user.is_approved) return res.status(403).json({ error: 'Account not approved' });
+    if (req.user.subscription_until && new Date(req.user.subscription_until) < new Date()) {
+      return res.status(403).json({ error: 'Subscription expired' });
+    }
+    next();
+  }
+
   // API Routes
   app.use('/auth', require('./server/routes/auth')(passport));
-  app.use('/api/projects', require('./server/routes/projects'));
-  app.use('/api/markers', require('./server/routes/markers'));
-  app.use('/api/uploads', require('./server/routes/uploads'));
-  app.use('/api/marker-types', require('./server/routes/markerTypes'));
+  app.use('/api/projects', requireApproved, require('./server/routes/projects'));
+  app.use('/api/markers', requireApproved, require('./server/routes/markers'));
+  app.use('/api/uploads', requireApproved, require('./server/routes/uploads'));
+  app.use('/api/marker-types', requireApproved, require('./server/routes/markerTypes'));
   app.use('/api/admin', require('./server/routes/admin'));
 
   // ============ PUBLIC PROJECT ENDPOINTS (no auth) ============
@@ -133,9 +151,11 @@ async function start() {
   // Contact request (public - for unapproved/expired users)
   app.post('/api/contact-request', (req, res) => {
     const { email, name, message } = req.body;
-    if (!email) return res.status(400).json({ error: 'Email required' });
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Valid email required' });
+    const safeName = (name || '').slice(0, 200);
+    const safeMsg = (message || '').slice(0, 2000);
     db.run('INSERT INTO contact_requests (email, name, message) VALUES (?, ?, ?)',
-      [email, name || '', message || '']);
+      [email.slice(0, 200), safeName, safeMsg]);
     res.json({ ok: true });
   });
 
@@ -155,8 +175,13 @@ async function start() {
   app.get('/api/config', (req, res) => {
     // Default: Leaflet/OSM for everyone (zero cost)
     const base = { mapsApiKey: '', useGoogleMaps: false, googleApiMode: 'none' };
+    if (process.env.GOOGLE_ANALYTICS_ID) base.analyticsId = process.env.GOOGLE_ANALYTICS_ID;
 
     if (!req.isAuthenticated()) return res.json(base);
+
+    // M6 FIX: Don't serve API key to unapproved/expired users
+    if (!req.user.is_approved) return res.json(base);
+    if (req.user.subscription_until && new Date(req.user.subscription_until) < new Date()) return res.json(base);
 
     const user = db.get('SELECT google_api_mode FROM users WHERE id = ?', [req.user.id]);
     const mode = user?.google_api_mode || 'none';
@@ -216,7 +241,8 @@ async function start() {
   app.post('/api/usage/increment', (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
     const { type } = req.body;
-    if (!type) return res.status(400).json({ error: 'Type required' });
+    const VALID_TYPES = ['maps_load', 'geocode', 'places'];
+    if (!type || !VALID_TYPES.includes(type)) return res.status(400).json({ error: 'Invalid type' });
     const today = new Date().toISOString().slice(0, 10);
     const monthStart = today.slice(0, 7) + '-01';
 
@@ -351,15 +377,17 @@ async function start() {
     const monthMapsLoad = allMonth.find(r => r.type === 'maps_load')?.count || 0;
     const monthGeocode = allMonth.find(r => r.type === 'geocode')?.count || 0;
 
+    // H2 FIX: Only expose per-user breakdown to admin
+    const isAdmin = req.user.role === 'admin';
     res.json({
       today: Object.fromEntries(myToday.map(r => [r.type, r.count])),
       myMonth: Object.fromEntries(myMonth.map(r => [r.type, r.count])),
-      allMonth: Object.fromEntries(allMonth.map(r => [r.type, r.count])),
-      totalCostUSD: Math.round(totalCost * 100) / 100,
+      allMonth: isAdmin ? Object.fromEntries(allMonth.map(r => [r.type, r.count])) : {},
+      totalCostUSD: isAdmin ? Math.round(totalCost * 100) / 100 : 0,
       creditUSD: monthlyCredit,
-      remainingCreditUSD: Math.round((monthlyCredit - totalCost) * 100) / 100,
-      users: Object.values(userCosts),
-      globalTotalCalls: globalTotal.total || 0,
+      remainingCreditUSD: isAdmin ? Math.round((monthlyCredit - totalCost) * 100) / 100 : 0,
+      users: isAdmin ? Object.values(userCosts) : [],
+      globalTotalCalls: isAdmin ? (globalTotal.total || 0) : 0,
       myTotalCalls: myAllTime.total || 0,
       // Per-user quota (daily + monthly)
       dailyLimit,
@@ -384,17 +412,9 @@ async function start() {
     res.json({ used: usage.count || 0, limit, remaining: Math.max(0, limit - (usage.count || 0)) });
   });
 
+  // M5 FIX: Legacy POST removed — use /api/usage/increment instead (has rate limit checks)
   app.post('/api/maps-usage/increment', (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
-    const today = new Date().toISOString().slice(0, 10);
-    db.run(
-      `INSERT INTO api_usage (user_id, date, type, count) VALUES (?, ?, 'maps_load', 1)
-       ON CONFLICT(user_id, date, type) DO UPDATE SET count = count + 1`,
-      [req.user.id, today]
-    );
-    const usage = db.get('SELECT SUM(count) as count FROM api_usage WHERE date = ?', [today]) || { count: 0 };
-    const limit = parseInt(process.env.GOOGLE_MAPS_DAILY_LIMIT) || 900;
-    res.json({ used: usage.count || 0, limit, remaining: Math.max(0, limit - (usage.count || 0)) });
+    res.status(410).json({ error: 'Deprecated. Use /api/usage/increment' });
   });
 
   // Geocoding cache API
@@ -402,9 +422,10 @@ async function start() {
     if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
     const { query } = req.query;
     if (!query) return res.json([]);
+    const escaped = query.replace(/[%_]/g, '\\$&');
     const results = db.all(
-      'SELECT * FROM geocache WHERE query LIKE ? LIMIT 10',
-      [`%${query}%`]
+      "SELECT * FROM geocache WHERE query LIKE ? ESCAPE '\\' LIMIT 10",
+      [`%${escaped}%`]
     );
     res.json(results);
   });

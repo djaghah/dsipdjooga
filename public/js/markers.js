@@ -314,7 +314,8 @@ window.Markers = {
         html += `<div class="picker-cat-label">Toate Proiectele</div><div class="picker-grid">`;
         allProjTypes.forEach(ct => {
           const isSel = selectedType === 'custom' && selectedIndex === ct.id;
-          html += `<div class="icon-option ${isSel ? 'selected' : ''}" data-type="custom" data-index="${ct.id}" title="${ct.name}">${ct.svg_data || ''}<span class="icon-label">${ct.name}</span></div>`;
+          const safeSvg = ct.svg_data ? `<img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(ct.svg_data)}" style="width:100%;height:100%" alt="">` : '';
+          html += `<div class="icon-option ${isSel ? 'selected' : ''}" data-type="custom" data-index="${ct.id}" title="${this.escHtml(ct.name)}">${safeSvg}<span class="icon-label">${this.escHtml(ct.name)}</span></div>`;
         });
         html += '</div>';
       }
@@ -322,7 +323,8 @@ window.Markers = {
         html += `<div class="picker-cat-label">Proiectul Curent</div><div class="picker-grid">`;
         thisProjTypes.forEach(ct => {
           const isSel = selectedType === 'custom' && selectedIndex === ct.id;
-          html += `<div class="icon-option ${isSel ? 'selected' : ''}" data-type="custom" data-index="${ct.id}" title="${ct.name}">${ct.svg_data || ''}<span class="icon-label">${ct.name}</span></div>`;
+          const safeSvg = ct.svg_data ? `<img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(ct.svg_data)}" style="width:100%;height:100%" alt="">` : '';
+          html += `<div class="icon-option ${isSel ? 'selected' : ''}" data-type="custom" data-index="${ct.id}" title="${this.escHtml(ct.name)}">${safeSvg}<span class="icon-label">${this.escHtml(ct.name)}</span></div>`;
         });
         html += '</div>';
       }

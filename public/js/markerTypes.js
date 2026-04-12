@@ -37,7 +37,7 @@ window.MarkerTypes = {
         const scopeLabel = t.scope === 'all' ? '🌐 Toate proiectele' : `📁 Proiect #${t.project_id}`;
         html += `
           <div class="manage-type-item" data-id="${t.id}">
-            <div class="manage-type-icon">${t.svg_data || '<span class="material-icons-round">help_outline</span>'}</div>
+            <div class="manage-type-icon">${t.svg_data ? `<img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(t.svg_data)}" style="width:100%;height:100%" alt="">` : '<span class="material-icons-round">help_outline</span>'}</div>
             <div class="manage-type-info">
               <div class="manage-type-name">${this.escHtml(t.name)}</div>
               <div class="manage-type-scope">${scopeLabel} · ${t.is_active ? '✅ Activ' : '⏸ Inactiv'}</div>

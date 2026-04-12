@@ -835,6 +835,7 @@
             <button class="admin-tab" data-tab="messages"><span class="material-icons-round">mail</span> <span data-i18n="admin.messages">Mesaje</span> <span id="msg-badge" class="badge hidden">0</span></button>
             <button class="admin-tab" data-tab="api-usage"><span class="material-icons-round">analytics</span> <span data-i18n="admin.apiUsage">API Usage</span></button>
             <button class="admin-tab" data-tab="settings"><span class="material-icons-round">settings</span> <span data-i18n="admin.settings">Setări</span></button>
+            <button class="admin-tab" data-tab="system"><span class="material-icons-round">monitor_heart</span> <span data-i18n="admin.system">System</span></button>
           </div>
 
           <!-- Users tab -->
@@ -914,6 +915,13 @@
                 <span class="material-icons-round">delete_forever</span> Resetare Baza de Date
               </button>
               <p style="margin-top:6px;font-size:11px;color:var(--danger)">Atenție: Șterge toate datele și recreează baza de date cu seed-ul implicit (2 proiecte Sibiu).</p>
+            </div>
+          </div>
+
+          <!-- System Status tab (super admin only) -->
+          <div id="admin-tab-system" class="admin-tab-content" style="padding:16px">
+            <div id="admin-system-status">
+              <p data-i18n="common.loading">Loading...</p>
             </div>
           </div>
         </div>

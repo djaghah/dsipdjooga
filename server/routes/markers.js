@@ -68,7 +68,7 @@ router.post('/', (req, res) => {
   if (project.my_role !== 'admin') return res.status(403).json({ error: 'Admin only' });
   if (lat == null || lng == null) return res.status(400).json({ error: 'Coordinates required' });
 
-  db.run(
+  const result = db.run(
     `INSERT INTO markers (project_id, user_id, lat, lng, title, icon_type, icon_index,
      observations, cost, currency, maintenance_date, repair_date, warranty_date,
      installation_date, responsible, status, condition, priority, custom_data)
@@ -79,7 +79,7 @@ router.post('/', (req, res) => {
      responsible || '', status || 'active', condition || 'good', priority || 'normal',
      JSON.stringify(custom_data || {})]
   );
-  const marker = db.get('SELECT * FROM markers WHERE project_id = ? ORDER BY id DESC LIMIT 1', [project_id]);
+  const marker = db.get('SELECT * FROM markers WHERE id = ?', [result.lastInsertRowid]);
   res.status(201).json(marker);
 });
 

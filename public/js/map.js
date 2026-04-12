@@ -238,7 +238,7 @@ window.MapManager = {
   showSearchResults(items, container) {
     container.innerHTML = items.map(item => `
       <div class="search-result-item" data-lat="${item.lat}" data-lng="${item.lng}">
-        <strong>${item.name || item.address || ''}</strong>
+        <strong>${this._escHtml(item.name || item.address || '')}</strong>
       </div>
     `).join('');
     container.classList.remove('hidden');
@@ -618,18 +618,25 @@ window.MapManager = {
     if (this.tempMarker) { this.tempMarker.setMap(null); this.tempMarker = null; }
   },
 
+  _escHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  },
+
   buildInfoWindow(data, detailed = false) {
     const iconSvg = Icons.getIconByType(data.icon_type, data.icon_index);
     const iconName = Icons.getIconName(data.icon_type, data.icon_index);
-    let html = `<div class="info-window"><div class="info-window-icon">${iconSvg}</div><div class="info-window-title">${data.title || iconName}</div><div class="info-window-meta">`;
-    if (data.observations) html += `<strong>Observații:</strong> ${data.observations}<br>`;
-    html += `<strong>Status:</strong> ${data.status || 'active'}<br>`;
-    if (data.condition) html += `<strong>Condiție:</strong> ${data.condition}<br>`;
+    const e = this._escHtml.bind(this);
+    let html = `<div class="info-window"><div class="info-window-icon">${iconSvg}</div><div class="info-window-title">${e(data.title || iconName)}</div><div class="info-window-meta">`;
+    if (data.observations) html += `<strong>Observații:</strong> ${e(data.observations)}<br>`;
+    html += `<strong>Status:</strong> ${e(data.status || 'active')}<br>`;
+    if (data.condition) html += `<strong>Condiție:</strong> ${e(data.condition)}<br>`;
     if (detailed) {
-      if (data.responsible) html += `<strong>Responsabil:</strong> ${data.responsible}<br>`;
-      if (data.cost) html += `<strong>Cost:</strong> ${data.cost} ${data.currency || 'EUR'}<br>`;
-      if (data.maintenance_date) html += `<strong>Mentenanță:</strong> ${data.maintenance_date}<br>`;
-      if (data.warranty_date) html += `<strong>Garanție:</strong> ${data.warranty_date}<br>`;
+      if (data.responsible) html += `<strong>Responsabil:</strong> ${e(data.responsible)}<br>`;
+      if (data.cost) html += `<strong>Cost:</strong> ${e(String(data.cost))} ${e(data.currency || 'EUR')}<br>`;
+      if (data.maintenance_date) html += `<strong>Mentenanță:</strong> ${e(data.maintenance_date)}<br>`;
+      if (data.warranty_date) html += `<strong>Garanție:</strong> ${e(data.warranty_date)}<br>`;
     }
     html += `<small style="color:#999">${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}</small></div></div>`;
     return html;

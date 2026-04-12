@@ -319,7 +319,7 @@ window.Projects = {
           <!-- Owner -->
           <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-light)">
             <span class="material-icons-round" style="font-size:16px;color:var(--warning)">star</span>
-            <span style="flex:1;font-size:13px">${owner?.name || owner?.email || 'N/A'} <span style="font-size:11px;color:var(--text-tertiary)">${owner?.email || ''}</span></span>
+            <span style="flex:1;font-size:13px">${this.escHtml(owner?.name || owner?.email || 'N/A')} <span style="font-size:11px;color:var(--text-tertiary)">${this.escHtml(owner?.email || '')}</span></span>
             <span style="font-size:10px;color:var(--warning);font-weight:600">OWNER</span>
           </div>
 
@@ -329,7 +329,7 @@ window.Projects = {
               members.map(m => `
                 <div class="member-row" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-light)">
                   <span class="material-icons-round" style="font-size:16px;color:var(--text-tertiary)">person</span>
-                  <span style="flex:1;font-size:13px">${m.user_name || m.user_email} <span style="font-size:11px;color:var(--text-tertiary)">${m.user_email}</span></span>
+                  <span style="flex:1;font-size:13px">${this.escHtml(m.user_name || m.user_email)} <span style="font-size:11px;color:var(--text-tertiary)">${this.escHtml(m.user_email)}</span></span>
                   <select class="member-role filter-select" data-member-id="${m.id}" style="width:90px;padding:2px 6px;font-size:11px">
                     <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>Viewer</option>
                     <option value="admin" ${m.role === 'admin' ? 'selected' : ''}>Admin</option>

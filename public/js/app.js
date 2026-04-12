@@ -11,12 +11,30 @@ window.App = {
     return this.user && this.user.role === 'admin' && this.user.email === 'bogdansarac@gmail.com';
   },
 
+  escHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  },
+
   async init() {
     // Load config
     try {
       const res = await fetch('/api/config');
       this.config = await res.json();
     } catch { this.config = { mapsApiKey: '', mapsQuotaDaily: 900 }; }
+
+    // Google Analytics 4
+    if (this.config.analyticsId) {
+      const s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://www.googletagmanager.com/gtag/js?id=' + this.config.analyticsId;
+      document.head.appendChild(s);
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function() { dataLayer.push(arguments); };
+      gtag('js', new Date());
+      gtag('config', this.config.analyticsId);
+    }
 
     // Check auth — dashboard layout always visible
     try {
@@ -566,7 +584,7 @@ window.App = {
           <div class="project-item" data-id="${p.id}">
             <div class="project-item-avatar">${Icons.getAvatar(p.avatar_index)}</div>
             <div class="project-item-info">
-              <div class="project-item-name">${p.name} <span style="font-size:9px;color:var(--success);background:rgba(16,185,129,0.1);padding:1px 5px;border-radius:99px">public</span></div>
+              <div class="project-item-name">${this.escHtml(p.name)} <span style="font-size:9px;color:var(--success);background:rgba(16,185,129,0.1);padding:1px 5px;border-radius:99px">public</span></div>
               <div class="project-item-count">${p.marker_count || 0} markers</div>
             </div>
           </div>`).join('');
@@ -617,11 +635,11 @@ window.App = {
             <div class="marker-card ${m.status === 'inactive' ? 'inactive' : ''}" data-lat="${m.lat}" data-lng="${m.lng}">
               <div class="marker-card-icon">${iconSvg}</div>
               <div class="marker-card-info">
-                <div class="marker-card-title">${iconName}</div>
+                <div class="marker-card-title">${this.escHtml(iconName)}</div>
                 <div class="marker-card-meta">
                   <span class="marker-card-status-dot ${m.status || 'active'}"></span>
                   <span>${m.lat.toFixed(4)}, ${m.lng.toFixed(4)}</span>
-                  ${m.responsible ? `<span>· ${m.responsible}</span>` : ''}
+                  ${m.responsible ? `<span>· ${this.escHtml(m.responsible)}</span>` : ''}
                 </div>
               </div>
             </div>`;
@@ -684,7 +702,8 @@ window.App = {
         : undefined;
       const lm = L.marker([m.lat, m.lng], iconHtml ? { icon: iconHtml } : {}).addTo(this._leafletMap);
       const title = m.title || Icons.getIconName(m.icon_type, m.icon_index);
-      lm.bindPopup(`<div style="min-width:160px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:28px;height:28px;flex-shrink:0">${svg || ''}</div><strong>${title}</strong></div><div style="font-size:12px;color:#666">${m.status || ''} · ${m.condition || ''}</div>${m.responsible ? `<div style="font-size:12px;color:#666">${m.responsible}</div>` : ''}</div>`);
+      const e = this.escHtml.bind(this);
+      lm.bindPopup(`<div style="min-width:160px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:28px;height:28px;flex-shrink:0">${svg || ''}</div><strong>${e(title)}</strong></div><div style="font-size:12px;color:#666">${e(m.status || '')} · ${e(m.condition || '')}</div>${m.responsible ? `<div style="font-size:12px;color:#666">${e(m.responsible)}</div>` : ''}</div>`);
       this._leafletMarkers.push(lm);
     });
 
@@ -867,7 +886,13 @@ window.App = {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     const icons = { success: 'check_circle', error: 'error', warning: 'warning', info: 'info' };
-    toast.innerHTML = `<span class="material-icons-round">${icons[type] || 'info'}</span><span>${message}</span>`;
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'material-icons-round';
+    iconSpan.textContent = icons[type] || 'info';
+    const msgSpan = document.createElement('span');
+    msgSpan.textContent = message;
+    toast.appendChild(iconSpan);
+    toast.appendChild(msgSpan);
     container.appendChild(toast);
     setTimeout(() => {
       toast.classList.add('removing');

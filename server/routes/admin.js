@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const os = require('os');
+const { execSync } = require('child_process');
 const db = require('../db');
 
 function requireAdmin(req, res, next) {
@@ -90,9 +92,17 @@ router.get('/settings', requireAdmin, (req, res) => {
   res.json(obj);
 });
 
-// Update settings
+// Update settings — M2 FIX: allowlist of valid keys
+const ALLOWED_SETTINGS = [
+  'api_daily_limit_per_user', 'api_monthly_limit_per_user',
+  'ad_splash_interval_minutes', 'ad_splash_duration_seconds',
+  'ad_free_extension_minutes', 'promo_video_url', 'promo_video_urls',
+  'monthly_free_quota_maps', 'monthly_free_quota_geocode',
+  'google_ads_client', 'google_ads_slot_sidebar', 'google_ads_slot_splash'
+];
 router.put('/settings', requireAdmin, (req, res) => {
   for (const [key, value] of Object.entries(req.body)) {
+    if (!ALLOWED_SETTINGS.includes(key)) continue;
     db.run('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', [key, String(value)]);
   }
   res.json({ ok: true });
@@ -315,6 +325,61 @@ router.post('/db-reset', requireAdmin, (req, res) => {
     console.error('DB reset error:', e);
     res.status(500).json({ error: 'Failed to reset database: ' + e.message });
   }
+});
+
+// ============ SYSTEM STATUS ============
+
+// Super admin only — system metrics
+router.get('/system-status', requireAdmin, (req, res) => {
+  if (req.user.email !== 'bogdansarac@gmail.com') {
+    return res.status(403).json({ error: 'Only super admin' });
+  }
+
+  // CPU
+  const cpus = os.cpus();
+  const cpuCount = cpus.length;
+  const loadAvg = os.loadavg(); // 1, 5, 15 min
+  const cpuUsagePct = Math.min(100, Math.round((loadAvg[0] / cpuCount) * 100));
+
+  // Memory
+  const totalMem = os.totalmem();
+  const freeMem = os.freemem();
+  const usedMem = totalMem - freeMem;
+  const memPct = Math.round((usedMem / totalMem) * 100);
+
+  // Disk — try df on Linux, fallback for other OS
+  let disk = { total: 0, used: 0, free: 0, pct: 0 };
+  try {
+    const dfOut = execSync('df -B1 / 2>/dev/null || echo "skip"', { encoding: 'utf8', timeout: 3000 });
+    const lines = dfOut.trim().split('\n');
+    if (lines.length >= 2 && !dfOut.includes('skip')) {
+      const parts = lines[1].split(/\s+/);
+      disk.total = parseInt(parts[1]) || 0;
+      disk.used = parseInt(parts[2]) || 0;
+      disk.free = parseInt(parts[3]) || 0;
+      disk.pct = disk.total > 0 ? Math.round((disk.used / disk.total) * 100) : 0;
+    }
+  } catch {}
+
+  // Uptime
+  const uptimeSec = os.uptime();
+  const days = Math.floor(uptimeSec / 86400);
+  const hours = Math.floor((uptimeSec % 86400) / 3600);
+  const mins = Math.floor((uptimeSec % 3600) / 60);
+
+  // Process
+  const processMemMB = Math.round(process.memoryUsage.rss ? process.memoryUsage.rss() / 1024 / 1024 : process.memoryUsage().rss / 1024 / 1024);
+
+  res.json({
+    cpu: { count: cpuCount, usagePct: cpuUsagePct, loadAvg: loadAvg.map(l => Math.round(l * 100) / 100) },
+    memory: { total: totalMem, used: usedMem, free: freeMem, pct: memPct },
+    disk,
+    uptime: { seconds: uptimeSec, formatted: `${days}d ${hours}h ${mins}m` },
+    process: { memMB: processMemMB, pid: process.pid, nodeVersion: process.version },
+    platform: os.platform(),
+    hostname: os.hostname(),
+    arch: os.arch()
+  });
 });
 
 module.exports = router;

@@ -6,6 +6,12 @@ window.AdminPanel = {
   adSplashTimer: null,
   settings: {},
 
+  escHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  },
+
   // ============ INIT ============
   async init() {
     // Load public settings
@@ -337,7 +343,7 @@ window.AdminPanel = {
   // YouTube play detection via postMessage
   _setupYouTubePlayDetection() {
     const handler = (event) => {
-      if (!event.origin.includes('youtube.com')) return;
+      if (event.origin !== 'https://www.youtube.com') return;
       try {
         const data = JSON.parse(event.data);
         // YouTube IFrame API sends state changes: 1 = playing
@@ -413,8 +419,9 @@ window.AdminPanel = {
         document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
         tab.classList.add('active');
         document.getElementById('admin-tab-' + tab.dataset.tab).classList.add('active');
-        // Lazy-load API usage tab
+        // Lazy-load tabs
         if (tab.dataset.tab === 'api-usage') this.loadApiUsage();
+        if (tab.dataset.tab === 'system') this.loadSystemStatus();
       });
     });
   },
@@ -462,8 +469,8 @@ window.AdminPanel = {
       return `
       <div class="admin-user-row" data-id="${u.id}" style="${!u.is_approved ? 'opacity:0.5' : ''}">
         <div style="flex:1;min-width:0">
-          <div style="font-weight:500">${u.name || 'N/A'} ${badge}</div>
-          <div style="font-size:12px;color:var(--text-tertiary)">${u.email}</div>
+          <div style="font-weight:500">${this.escHtml(u.name || 'N/A')} ${badge}</div>
+          <div style="font-size:12px;color:var(--text-tertiary)">${this.escHtml(u.email)}</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           ${isSuper ? '' : `
@@ -556,9 +563,9 @@ window.AdminPanel = {
     container.innerHTML = msgs.map(m => `
       <div class="admin-msg-row ${m.acknowledged ? 'acked' : ''}">
         <div style="flex:1">
-          <div style="font-weight:500">${m.name || m.email}</div>
-          <div style="font-size:12px;color:var(--text-tertiary)">${m.email} · ${new Date(m.created_at).toLocaleString()}</div>
-          <div style="font-size:13px;margin-top:4px">${m.message || '<em>fără mesaj</em>'}</div>
+          <div style="font-weight:500">${this.escHtml(m.name || m.email)}</div>
+          <div style="font-size:12px;color:var(--text-tertiary)">${this.escHtml(m.email)} · ${new Date(m.created_at).toLocaleString()}</div>
+          <div style="font-size:13px;margin-top:4px">${m.message ? this.escHtml(m.message) : '<em>fără mesaj</em>'}</div>
         </div>
         ${!m.acknowledged ? `<button class="btn btn-sm btn-accent msg-ack" data-id="${m.id}">✓ ACK</button>` : '<span style="color:var(--success);font-size:12px">✓</span>'}
       </div>
@@ -735,7 +742,7 @@ window.AdminPanel = {
           : '<span style="color:var(--text-tertiary);font-size:10px">system</span>';
         html += `<tr style="border-bottom:1px solid var(--border)">
           <td style="padding:4px 8px;color:var(--text-tertiary);white-space:nowrap">${time}</td>
-          <td style="padding:4px 8px">${l.name || l.email}</td>
+          <td style="padding:4px 8px">${this.escHtml(l.name || l.email)}</td>
           <td style="padding:4px 8px;font-family:var(--font-mono)">${l.type}</td>
           <td style="padding:4px 8px;text-align:center">${keyBadge}</td>
         </tr>`;
@@ -803,6 +810,114 @@ window.AdminPanel = {
     }
   },
 
+  // ============ SYSTEM STATUS TAB ============
+  _systemRefreshTimer: null,
+
+  async loadSystemStatus() {
+    const container = document.getElementById('admin-system-status');
+    try {
+      const res = await fetch('/api/admin/system-status');
+      if (!res.ok) { container.innerHTML = `<p style="color:var(--danger)">Error: ${res.status}</p>`; return; }
+      const s = await res.json();
+
+      const fmtBytes = (b) => {
+        if (b >= 1073741824) return (b / 1073741824).toFixed(1) + ' GB';
+        if (b >= 1048576) return (b / 1048576).toFixed(0) + ' MB';
+        return (b / 1024).toFixed(0) + ' KB';
+      };
+
+      const bar = (pct, label) => {
+        const color = pct >= 90 ? 'var(--danger)' : pct >= 70 ? 'var(--warning)' : 'var(--accent)';
+        return `<div style="margin-top:6px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-tertiary);margin-bottom:2px"><span>${label}</span><span style="font-weight:600;color:${color}">${pct}%</span></div>
+          <div style="height:8px;background:var(--bg-secondary);border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${Math.min(pct, 100)}%;background:${color};border-radius:4px;transition:width 0.5s"></div>
+          </div>
+        </div>`;
+      };
+
+      let html = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">`;
+
+      // CPU
+      html += `<div style="background:var(--bg-tertiary);padding:16px;border-radius:var(--radius-md)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="material-icons-round" style="font-size:24px;color:var(--accent)">memory</span>
+          <span style="font-size:13px;font-weight:600">CPU</span>
+        </div>
+        <div style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:var(--accent)">${s.cpu.usagePct}%</div>
+        <div style="font-size:11px;color:var(--text-tertiary)">${s.cpu.count} cores · load: ${s.cpu.loadAvg.join(', ')}</div>
+        ${bar(s.cpu.usagePct, 'CPU Usage')}
+      </div>`;
+
+      // Memory
+      html += `<div style="background:var(--bg-tertiary);padding:16px;border-radius:var(--radius-md)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="material-icons-round" style="font-size:24px;color:var(--warning)">developer_board</span>
+          <span style="font-size:13px;font-weight:600">Memory</span>
+        </div>
+        <div style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:var(--warning)">${s.memory.pct}%</div>
+        <div style="font-size:11px;color:var(--text-tertiary)">${fmtBytes(s.memory.used)} / ${fmtBytes(s.memory.total)}</div>
+        ${bar(s.memory.pct, 'RAM Usage')}
+      </div>`;
+
+      // Disk
+      html += `<div style="background:var(--bg-tertiary);padding:16px;border-radius:var(--radius-md)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="material-icons-round" style="font-size:24px;color:var(--success)">storage</span>
+          <span style="font-size:13px;font-weight:600">Disk</span>
+        </div>
+        <div style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:var(--success)">${s.disk.pct}%</div>
+        <div style="font-size:11px;color:var(--text-tertiary)">${fmtBytes(s.disk.used)} / ${fmtBytes(s.disk.total)}</div>
+        ${bar(s.disk.pct, 'Disk Usage')}
+      </div>`;
+
+      html += `</div>`;
+
+      // System info
+      html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">`;
+      html += `<div style="background:var(--bg-tertiary);padding:16px;border-radius:var(--radius-md)">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px"><span class="material-icons-round" style="font-size:16px;vertical-align:middle">info</span> System Info</div>
+        <div style="font-size:12px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px">
+          <span style="color:var(--text-tertiary)">Platform</span><span>${this.escHtml(s.platform)} (${this.escHtml(s.arch)})</span>
+          <span style="color:var(--text-tertiary)">Hostname</span><span style="font-family:var(--font-mono)">${this.escHtml(s.hostname)}</span>
+          <span style="color:var(--text-tertiary)">Uptime</span><span style="font-family:var(--font-mono)">${this.escHtml(s.uptime.formatted)}</span>
+          <span style="color:var(--text-tertiary)">Node.js</span><span style="font-family:var(--font-mono)">${this.escHtml(s.process.nodeVersion)}</span>
+        </div>
+      </div>`;
+      html += `<div style="background:var(--bg-tertiary);padding:16px;border-radius:var(--radius-md)">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px"><span class="material-icons-round" style="font-size:16px;vertical-align:middle">terminal</span> Process Info</div>
+        <div style="font-size:12px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px">
+          <span style="color:var(--text-tertiary)">PID</span><span style="font-family:var(--font-mono)">${s.process.pid}</span>
+          <span style="color:var(--text-tertiary)">Process RSS</span><span style="font-family:var(--font-mono)">${s.process.memMB} MB</span>
+          <span style="color:var(--text-tertiary)">Free RAM</span><span style="font-family:var(--font-mono)">${fmtBytes(s.memory.free)}</span>
+          <span style="color:var(--text-tertiary)">Free Disk</span><span style="font-family:var(--font-mono)">${fmtBytes(s.disk.free)}</span>
+        </div>
+      </div>`;
+      html += `</div>`;
+
+      // Refresh button
+      html += `<div style="margin-top:16px;text-align:center">
+        <button class="btn btn-sm btn-secondary" id="btn-refresh-system"><span class="material-icons-round" style="font-size:16px">refresh</span> Refresh</button>
+        <span style="font-size:11px;color:var(--text-tertiary);margin-left:8px">Auto-refresh every 10s while tab is open</span>
+      </div>`;
+
+      container.innerHTML = html;
+
+      document.getElementById('btn-refresh-system')?.addEventListener('click', () => this.loadSystemStatus());
+
+      // Auto-refresh while tab is visible
+      if (this._systemRefreshTimer) clearInterval(this._systemRefreshTimer);
+      this._systemRefreshTimer = setInterval(() => {
+        const tab = document.querySelector('.admin-tab.active');
+        if (tab?.dataset.tab === 'system') this.loadSystemStatus();
+        else { clearInterval(this._systemRefreshTimer); this._systemRefreshTimer = null; }
+      }, 10000);
+
+    } catch (e) {
+      container.innerHTML = `<p style="color:var(--danger)">Error: ${this.escHtml(e.message)}</p>`;
+    }
+  },
+
   _renderQuotaRow(u) {
     const dailyPct = Math.min(100, Math.round(u.todayUsed / u.dailyLimit * 100));
     const monthPct = Math.min(100, Math.round(u.monthUsed / u.monthlyLimit * 100));
@@ -811,8 +926,8 @@ window.AdminPanel = {
 
     return `<tr style="border-bottom:1px solid var(--border)" data-user-id="${u.id}">
       <td style="padding:8px">
-        <strong>${u.name || 'N/A'}</strong><br>
-        <span style="font-size:10px;color:var(--text-tertiary)">${u.email}</span>
+        <strong>${this.escHtml(u.name || 'N/A')}</strong><br>
+        <span style="font-size:10px;color:var(--text-tertiary)">${this.escHtml(u.email)}</span>
       </td>
       <td style="padding:8px;text-align:center;min-width:120px">
         <div style="font-family:var(--font-mono);font-weight:600;color:${dailyColor}">${u.todayUsed}/${u.dailyLimit}</div>
