@@ -18,7 +18,7 @@ Node.js client-server application for geographic project management with Google 
 - `server/routes/projects.js` — Project CRUD + project members (invite/role/remove)
 - `server/routes/markers.js` — Marker CRUD with project-level access control (admin=edit, viewer=read)
 - `server/routes/uploads.js` — Image upload with multer
-- `server/routes/admin.js` — Super admin panel: users, whitelist, contact requests, app settings, DB version check + reset, quota management, API usage reports + logs
+- `server/routes/admin.js` — Super admin panel: users, whitelist, contact requests, app settings, DB version check + reset, quota management, API usage reports + logs, system status (CPU/RAM/Disk)
 - `server/routes/markerTypes.js` — Custom marker type CRUD
 - `public/index.html` — SPA HTML (login, unauthorized, expired, dashboard, admin panel, ads, API keys modal, usage modal)
 - `public/css/style.css` — Full CSS with dark/light theme via CSS vars
@@ -31,7 +31,7 @@ Node.js client-server application for geographic project management with Google 
 - `public/js/icons.js` — SVGs: 10 avatars, 55 road signs, 24 firefighter icons, 5 default markers
 - `public/js/i18n.js` — Translations: EN, RO, DE, FR (all keys in all languages)
 - `public/js/theme.js` — Dark/light mode
-- `public/js/admin.js` — Super admin panel, splash overlay (video reward), access control, admin/user role toggle, DB reset, API usage tab with per-user quota table + reset + log
+- `public/js/admin.js` — Super admin panel, splash overlay (video reward), access control, admin/user role toggle, DB reset, API usage tab with per-user quota table + reset + log, system status tab
 - `public/js/markerTypes.js` — Custom marker type management
 - `Dockerfile` — Node 20 Alpine, non-root user, dumb-init, health check
 - `docker-compose.yml` — Hardened: read-only fs, no-new-privileges, cap_drop ALL, memory/cpu limits
@@ -82,15 +82,25 @@ Node.js client-server application for geographic project management with Google 
 7. Super admin (bogdansarac@gmail.com) always passes all checks
 
 ## Security
-- **Security headers**: X-Frame-Options SAMEORIGIN, X-XSS-Protection, X-Content-Type-Options nosniff, Referrer-Policy strict-origin, Permissions-Policy, HSTS in production
+- **Security headers**: X-Frame-Options SAMEORIGIN, X-Content-Type-Options nosniff, Referrer-Policy strict-origin, Permissions-Policy, HSTS in production, X-XSS-Protection 0 (deprecated, CSP recommended)
 - **Session cookies**: httpOnly, sameSite: lax, secure in production
-- **Rate limiting**: Global 120 req/min per IP, strict 30/15min for contact form, 60/min for public projects
-- **API key protection**: `/api/config` returns empty key for unauthenticated users — API key only served to authenticated users
+- **Session fixation**: Session regenerated after OAuth login (`req.session.regenerate`)
+- **Session secret**: Production fails to start if `SESSION_SECRET` env var is missing
+- **Rate limiting**: Global 120 req/min per IP, strict 30/15min for contact form, 60/min for public projects. Nginx: `limit_req_zone` in `http{}` block, `limit_req zone=dsip burst=50 nodelay` per server
+- **Server-side authorization**: `requireApproved` middleware on all protected routes — checks `is_approved` + `subscription_until` (not just client-side)
+- **API key protection**: `/api/config` returns empty key for unauthenticated, unapproved, or expired users
 - **CSRF prevention**: SameSite cookie attribute (lax) prevents cross-site request forgery
-- **XSS prevention**: User names rendered via textContent (not innerHTML), SQL queries parameterized
-- **YouTube embed**: Proper allow attributes (accelerometer, autoplay, clipboard-write, encrypted-media, gyroscope, picture-in-picture)
+- **XSS prevention**: All user-controlled data escaped via `escHtml()` before innerHTML insertion. Each JS module has its own `escHtml()` method. Custom SVG marker types rendered via `<img src="data:image/svg+xml,...">` (sandboxed, no script execution). Toast messages use `textContent`. SQL queries parameterized.
+- **YouTube embed**: Proper allow attributes. postMessage origin check uses strict `=== 'https://www.youtube.com'`
 - **Docker**: Non-root, read-only fs, dropped capabilities, no-new-privileges, resource limits
-- **Uploads**: Scoped per user (`/uploads/:userId`), auth + ownership check
+- **Uploads**: Scoped per user (`/uploads/:userId`), auth + ownership check. Allowed: jpg, jpeg, png, gif, webp (NO svg — XSS vector)
+- **Admin settings**: `PUT /api/admin/settings` validates keys against an allowlist (prevents arbitrary key injection)
+- **Usage tracking**: `/api/usage/increment` validates `type` against allowlist (`maps_load`, `geocode`, `places`). Legacy endpoint deprecated (410 Gone)
+- **Contact form**: Email format validated, field lengths capped (name: 200, message: 2000)
+- **Geocache**: LIKE metacharacters (`%`, `_`) escaped to prevent cache enumeration
+- **API usage data**: `/api/usage` returns per-user breakdown only to admin role
+- **JSON body limit**: 1MB (reduced from 10MB)
+- **Nginx hardening**: `server_tokens off`, security headers repeated in static asset location block, `proxy_hide_header X-Powered-By`, buffer limits, TLSv1/1.1 removed (only TLSv1.2+TLSv1.3)
 
 ## API Rate Limiting & Quotas
 - **Daily quota**: default 10/day per user, configurable from admin
@@ -176,6 +186,21 @@ Node.js client-server application for geographic project management with Google 
   - "Semne Rutiere Sibiu" — 300 road sign markers across Sibiu streets
 - Realistic data: street names, statuses (active/inactive/maintenance), conditions, costs, dates, responsible persons
 
+## Google Analytics
+- **GA4 Property**: Measurement ID `G-JF9J8WD5N8`
+- Configured via `GOOGLE_ANALYTICS_ID` in `.env`
+- Script injected dynamically in `app.js` on init (from `/api/config` response)
+- Tracks all visitors (authenticated + unauthenticated public project viewers)
+- Free tier (no cost)
+
+## Admin System Status Tab
+- Super admin only — tab "System" in admin panel
+- Endpoint: `GET /api/admin/system-status`
+- Shows: CPU usage %, RAM usage %, Disk usage % (with progress bars)
+- System info: platform, hostname, uptime, Node.js version, PID, process RSS
+- Auto-refreshes every 10 seconds while tab is open
+- Disk info uses `df` command (works on Linux/Docker, shows 0% on Windows dev)
+
 ## Environment Variables (.env) — NOT IN GIT
 ```
 GOOGLE_CLIENT_ID=             # OAuth 2.0 client ID
@@ -185,7 +210,8 @@ GOOGLE_MAPS_DAILY_LIMIT=900   # Global daily map load quota
 GOOGLE_ADS_CLIENT=            # AdSense publisher ID (ca-pub-XXXX)
 GOOGLE_ADS_SLOT_SIDEBAR=      # AdSense ad unit slot ID for sidebar
 GOOGLE_ADS_SLOT_SPLASH=       # AdSense ad unit slot ID for splash screen
-SESSION_SECRET=               # Express session secret (openssl rand -base64 48)
+GOOGLE_ANALYTICS_ID=          # GA4 Measurement ID (G-XXXXXXXXXX)
+SESSION_SECRET=               # Express session secret (REQUIRED in production)
 PORT=1978                     # Server port
 BASE_URL=https://maps.djooga.com  # Public URL (used for OAuth callback)
 ```
@@ -221,7 +247,8 @@ BASE_URL=https://maps.djooga.com  # Public URL (used for OAuth callback)
 - **Provider**: Contabo VPS
 - **IP**: 38.242.237.2
 - **OS**: Ubuntu Noble (24.04)
-- **User**: djooga
+- **SSH users**: `jooga` and `djooga` only — root login disabled, password login disabled
+- **App user**: `djooga` (has sudo rights)
 - **App dir**: /home/djooga/maps
 - **Domain**: maps.djooga.com
 - **Port**: 1978 (internal, nginx proxies from 443)
@@ -392,3 +419,4 @@ docker compose exec dsip sh         # Shell into container
 - i18n: `data-i18n` attributes on HTML elements, `I18n.t('key')` in JS code. **IMPORTANT**: When adding ANY new user-visible text, ALWAYS add it to ALL 4 languages (en, ro, de, fr) in `public/js/i18n.js`. Never hardcode strings in Romanian or any language — always use i18n keys.
 - sql.js: in-memory DB with immediate save to disk on every write
 - Marker icons: SVG → Canvas → PNG data URL (not raw SVG data URLs — they break at zoom)
+- **XSS prevention**: ALWAYS escape user-controlled data before innerHTML insertion. Each module (App, Markers, Projects, MarkerTypes, AdminPanel, MapManager) has an `escHtml()` method. For custom SVG data, render via `<img src="data:image/svg+xml,...">` (sandboxed). For toast messages, use `textContent` not `innerHTML`.
