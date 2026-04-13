@@ -2170,6 +2170,7 @@ textarea.form-input { resize: vertical; }
 }
 
 .landing-content {
+  display: none;
   background: var(--bg-primary);
   color: var(--text-primary);
   width: 100%;

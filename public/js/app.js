@@ -66,7 +66,7 @@ window.App = {
     document.getElementById('coord-input').classList.add('hidden');
     // Show SEO landing content for unauthenticated visitors (visible to Google + AdSense content)
     const seoLanding = document.getElementById('seo-landing');
-    if (seoLanding) seoLanding.style.display = '';
+    if (seoLanding) seoLanding.style.display = 'block';
 
     // Detect browser language for unauthenticated visitors
     const browserLang = (navigator.language || navigator.userLanguage || 'en').slice(0, 2).toLowerCase();
