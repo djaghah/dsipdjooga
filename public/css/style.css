@@ -863,8 +863,6 @@ input, select, textarea, button {
   flex: 1;
   position: relative;
   overflow: hidden;
-  padding: 6px;
-  padding-bottom: 8px;
   min-width: 0;
 }
 
