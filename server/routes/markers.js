@@ -67,6 +67,14 @@ router.post('/', (req, res) => {
   if (!project) return res.status(404).json({ error: 'Project not found' });
   if (project.my_role !== 'admin') return res.status(403).json({ error: 'Admin only' });
   if (lat == null || lng == null) return res.status(400).json({ error: 'Coordinates required' });
+  if (typeof lat !== 'number' || typeof lng !== 'number' || !isFinite(lat) || !isFinite(lng)) return res.status(400).json({ error: 'Invalid coordinates' });
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return res.status(400).json({ error: 'Coordinates out of range' });
+  const validStatus = ['active', 'inactive', 'maintenance'];
+  const validCondition = ['good', 'fair', 'poor', 'critical'];
+  const validPriority = ['low', 'normal', 'high', 'urgent'];
+  if (status && !validStatus.includes(status)) return res.status(400).json({ error: 'Invalid status' });
+  if (condition && !validCondition.includes(condition)) return res.status(400).json({ error: 'Invalid condition' });
+  if (priority && !validPriority.includes(priority)) return res.status(400).json({ error: 'Invalid priority' });
 
   const result = db.run(
     `INSERT INTO markers (project_id, user_id, lat, lng, title, icon_type, icon_index,
@@ -91,6 +99,16 @@ router.put('/:id', (req, res) => {
   const { lat, lng, title, icon_type, icon_index, observations,
           cost, currency, maintenance_date, repair_date, warranty_date,
           installation_date, responsible, status, condition, priority, custom_data } = req.body;
+
+  const fLat = lat ?? marker.lat, fLng = lng ?? marker.lng;
+  if (typeof fLat !== 'number' || typeof fLng !== 'number' || !isFinite(fLat) || !isFinite(fLng)) return res.status(400).json({ error: 'Invalid coordinates' });
+  if (fLat < -90 || fLat > 90 || fLng < -180 || fLng > 180) return res.status(400).json({ error: 'Coordinates out of range' });
+  const validStatus = ['active', 'inactive', 'maintenance'];
+  const validCondition = ['good', 'fair', 'poor', 'critical'];
+  const validPriority = ['low', 'normal', 'high', 'urgent'];
+  if (status && !validStatus.includes(status)) return res.status(400).json({ error: 'Invalid status' });
+  if (condition && !validCondition.includes(condition)) return res.status(400).json({ error: 'Invalid condition' });
+  if (priority && !validPriority.includes(priority)) return res.status(400).json({ error: 'Invalid priority' });
 
   db.run(
     `UPDATE markers SET lat = ?, lng = ?, title = ?, icon_type = ?, icon_index = ?,

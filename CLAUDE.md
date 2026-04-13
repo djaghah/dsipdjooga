@@ -91,16 +91,23 @@ Node.js client-server application for geographic project management with Google 
 - **API key protection**: `/api/config` returns empty key for unauthenticated, unapproved, or expired users
 - **CSRF prevention**: SameSite cookie attribute (lax) prevents cross-site request forgery
 - **XSS prevention**: All user-controlled data escaped via `escHtml()` before innerHTML insertion. Each JS module has its own `escHtml()` method. Custom SVG marker types rendered via `<img src="data:image/svg+xml,...">` (sandboxed, no script execution). Toast messages use `textContent`. SQL queries parameterized.
-- **YouTube embed**: Proper allow attributes. postMessage origin check uses strict `=== 'https://www.youtube.com'`
+- **YouTube embed**: Proper allow attributes. postMessage origin check uses strict `=== 'https://www.youtube.com'`. postMessage send also targets `'https://www.youtube.com'` (not wildcard `'*'`)
 - **Docker**: Non-root, read-only fs, dropped capabilities, no-new-privileges, resource limits
-- **Uploads**: Scoped per user (`/uploads/:userId`), auth + ownership check. Allowed: jpg, jpeg, png, gif, webp (NO svg — XSS vector)
+- **Uploads**: Scoped per user (`/uploads/:userId`), auth + ownership check. Allowed: jpg, jpeg, png, gif, webp (NO svg — XSS vector). Both file extension AND MIME type validated against allowlists.
 - **Admin settings**: `PUT /api/admin/settings` validates keys against an allowlist (prevents arbitrary key injection)
 - **Usage tracking**: `/api/usage/increment` validates `type` against allowlist (`maps_load`, `geocode`, `places`). Legacy endpoint deprecated (410 Gone)
 - **Contact form**: Email format validated, field lengths capped (name: 200, message: 2000)
 - **Geocache**: LIKE metacharacters (`%`, `_`) escaped to prevent cache enumeration
 - **API usage data**: `/api/usage` returns per-user breakdown only to admin role
-- **JSON body limit**: 1MB (reduced from 10MB)
+- **JSON body limit**: 1MB for both JSON and URL-encoded bodies
 - **Nginx hardening**: `server_tokens off`, security headers repeated in static asset location block, `proxy_hide_header X-Powered-By`, buffer limits, TLSv1/1.1 removed (only TLSv1.2+TLSv1.3)
+- **SPA fallback**: GET `*` returns 404 JSON for `/api/*` and `/auth/*` routes instead of serving index.html
+- **Global error handler**: Express error middleware catches unhandled errors, returns generic 500 JSON (no stack traces)
+- **Error message sanitization**: API key validation and other error responses don't expose internal details (Google API error messages, exception stack traces)
+- **Input validation**: Marker coordinates validated (type, range -90/90 -180/180). Status/condition/priority validated against enum allowlists. Marker type scope validated ('all'/'project'). Email type-checked before string operations.
+- **IDOR prevention**: Project member update/delete verifies memberId exists in the specified project before modifying
+- **Video URL validation**: Only YouTube (youtube.com/youtu.be) and direct video files (mp4/webm/ogg) over HTTP/HTTPS are allowed. Unknown format iframe fallback removed.
+- **Project access control**: GET/PUT project routes check both owner AND project members (not owner-only). DELETE is owner-only. Members with admin role can edit project settings.
 
 ## API Rate Limiting & Quotas
 - **Daily quota**: default 10/day per user, configurable from admin
@@ -247,11 +254,17 @@ BASE_URL=https://maps.djooga.com  # Public URL (used for OAuth callback)
 - **Provider**: Contabo VPS
 - **IP**: 38.242.237.2
 - **OS**: Ubuntu Noble (24.04)
+- **Disk**: 145G total, ~46G used (32%)
 - **SSH users**: `jooga` and `djooga` only — root login disabled, password login disabled
 - **App user**: `djooga` (has sudo rights)
 - **App dir**: /home/djooga/maps
 - **Domain**: maps.djooga.com
 - **Port**: 1978 (internal, nginx proxies from 443)
+
+### Other apps on same server
+- **Volley Stats**: volley.djooga.com → 127.0.0.1:1976, dir /home/djooga/volley, systemd volley.service
+- **Jooga Web/API**: test.djooga.com → 3000/3001, dir /home/djooga/jooga-app (HTTP only, no SSL)
+- **AdSense verify**: djooga.com → static /var/www/djooga.com
 
 ### Prerequisites
 - SSH access as user `djooga` (root and password login disabled)

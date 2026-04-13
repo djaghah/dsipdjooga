@@ -64,6 +64,15 @@ window.App = {
     // Hide sidebar search/filters (no geocoding for public)
     document.getElementById('map-search-box').classList.add('hidden');
     document.getElementById('coord-input').classList.add('hidden');
+    // Show SEO landing content for unauthenticated visitors (visible to Google + AdSense content)
+    const seoLanding = document.getElementById('seo-landing');
+    if (seoLanding) seoLanding.style.display = '';
+
+    // Detect browser language for unauthenticated visitors
+    const browserLang = (navigator.language || navigator.userLanguage || 'en').slice(0, 2).toLowerCase();
+    const supportedLangs = ['en', 'ro', 'de', 'fr'];
+    I18n.setLocale(supportedLangs.includes(browserLang) ? browserLang : 'en');
+
     // Load public settings and show ads immediately
     try {
       const r = await fetch('/api/public-settings');
@@ -653,7 +662,7 @@ window.App = {
               this._leafletMap.setView([lat, lng], 17);
               // Open the corresponding popup
               this._leafletMarkers.forEach(lm => {
-                if (Math.abs(lm.getLatLng().lat - lat) < 0.00001) lm.openPopup();
+                if (Math.abs(lm.getLatLng().lat - lat) < 0.00001 && Math.abs(lm.getLatLng().lng - lng) < 0.00001) lm.openPopup();
               });
             }
           });

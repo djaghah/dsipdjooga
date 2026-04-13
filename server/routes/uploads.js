@@ -30,9 +30,10 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const allowedExt = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const allowedMime = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     const ext = path.extname(file.originalname).toLowerCase();
-    if (allowed.includes(ext)) cb(null, true);
+    if (allowedExt.includes(ext) && allowedMime.includes(file.mimetype)) cb(null, true);
     else cb(new Error('Only image files are allowed'));
   }
 });
@@ -84,7 +85,7 @@ router.delete('/marker-image/:imageId', (req, res) => {
   if (!image) return res.status(404).json({ error: 'Image not found' });
 
   const filePath = path.join(__dirname, '..', '..', 'uploads', String(req.user.id), image.filename);
-  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  try { fs.unlinkSync(filePath); } catch {}
   db.run('DELETE FROM marker_images WHERE id = ?', [image.id]);
   res.json({ ok: true });
 });

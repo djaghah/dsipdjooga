@@ -53,7 +53,7 @@ async function start() {
 
   // Middleware
   app.use(express.json({ limit: '1mb' }));
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
   // Session (secure cookies in production)
   app.use(session({
@@ -506,10 +506,11 @@ async function start() {
       if (result.status === 'OK' || result.status === 'ZERO_RESULTS') {
         res.json({ valid: true, message: 'API key works!' });
       } else {
-        res.json({ valid: false, message: `Google API error: ${result.status} — ${result.error_message || 'Check key restrictions'}` });
+        res.json({ valid: false, message: 'Google API rejected the key. Check key restrictions and enabled APIs.' });
       }
     } catch (e) {
-      res.json({ valid: false, message: 'Could not validate: ' + e.message });
+      console.error('API key validation error:', e.message);
+      res.json({ valid: false, message: 'Could not validate API key. Please try again.' });
     }
   });
 
@@ -598,7 +599,16 @@ async function start() {
 
   // SPA fallback - serve index.html for all non-API routes
   app.get('*', (req, res) => {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/auth/')) {
+      return res.status(404).json({ error: 'Not found' });
+    }
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  });
+
+  // Global error handler — prevent stack trace leaks
+  app.use((err, req, res, _next) => {
+    console.error('Unhandled error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   });
 
   app.listen(PORT, () => {

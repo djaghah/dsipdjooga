@@ -201,16 +201,19 @@ window.AdminPanel = {
       }
     }
 
-    // Promo video (from video list or single URL)
+    // Promo video (from video list or single URL) — validated
     let videoUrl = null;
     try {
       const urls = JSON.parse(this.settings.promo_video_urls || '[]');
       if (Array.isArray(urls) && urls.length > 0) {
-        const valid = urls.filter(u => u && u.trim());
+        const valid = urls.filter(u => u && u.trim() && this._isValidVideoUrl(u.trim()));
         if (valid.length > 0) videoUrl = valid[0].trim(); // Show first video in sidebar
       }
     } catch {}
-    if (!videoUrl) videoUrl = this.settings.promo_video_url || null;
+    if (!videoUrl) {
+      const fallback = this.settings.promo_video_url || null;
+      videoUrl = this._isValidVideoUrl(fallback) ? fallback : null;
+    }
 
     if (videoUrl) {
       const area = document.getElementById('promo-video-area');
@@ -260,18 +263,33 @@ window.AdminPanel = {
     return m ? m[1] : null;
   },
 
+  // Validate video URL — only allow YouTube and direct video files over HTTPS
+  _isValidVideoUrl(url) {
+    if (!url) return false;
+    try {
+      const u = new URL(url);
+      if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;
+      // Allow YouTube
+      if (/^(www\.)?youtube\.com$/.test(u.hostname) || u.hostname === 'youtu.be') return true;
+      // Allow direct video files
+      if (/\.(mp4|webm|ogg)(\?|$)/i.test(u.pathname)) return true;
+      return false;
+    } catch { return false; }
+  },
+
   // Get random video URL from list
   _getRandomVideoUrl() {
     // Try video list first
     try {
       const urls = JSON.parse(this.settings.promo_video_urls || '[]');
       if (Array.isArray(urls) && urls.length > 0) {
-        const valid = urls.filter(u => u && u.trim());
+        const valid = urls.filter(u => u && u.trim() && this._isValidVideoUrl(u.trim()));
         if (valid.length > 0) return valid[Math.floor(Math.random() * valid.length)].trim();
       }
     } catch {}
     // Fallback to single URL
-    return this.settings.promo_video_url || null;
+    const fallback = this.settings.promo_video_url || null;
+    return this._isValidVideoUrl(fallback) ? fallback : null;
   },
 
   showSplash() {
@@ -308,8 +326,8 @@ window.AdminPanel = {
       const vid = document.getElementById('splash-direct-video');
       if (vid) vid.addEventListener('play', () => this._onVideoPlay(), { once: true });
     } else {
-      // Unknown format — iframe
-      videoContainer.innerHTML = `<iframe src="${videoUrl}" allow="encrypted-media" allowfullscreen></iframe>`;
+      // Unknown format — skip (only YouTube and direct video allowed)
+      videoContainer.innerHTML = '';
     }
 
     // Clear any previous timer
@@ -363,7 +381,7 @@ window.AdminPanel = {
     setTimeout(() => {
       const iframe = document.getElementById('splash-yt-frame');
       if (iframe?.contentWindow) {
-        iframe.contentWindow.postMessage('{"event":"listening","id":"1"}', '*');
+        iframe.contentWindow.postMessage('{"event":"listening","id":"1"}', 'https://www.youtube.com');
       }
     }, 500);
   },
@@ -632,7 +650,7 @@ window.AdminPanel = {
         const dbInfo = await dbRes.json();
         const infoEl = document.getElementById('db-version-info');
         if (dbInfo.needsReset) {
-          infoEl.innerHTML = `<span style="color:var(--danger);font-weight:600">⚠ Versiune DB: ${dbInfo.dbVersion} → Cod: ${dbInfo.codeVersion} — RESET NECESAR</span>`;
+          infoEl.innerHTML = `<span style="color:var(--danger);font-weight:600">⚠ Versiune DB: ${this.escHtml(String(dbInfo.dbVersion))} → Cod: ${this.escHtml(String(dbInfo.codeVersion))} — RESET NECESAR</span>`;
         } else {
           infoEl.textContent = `Versiune DB: ${dbInfo.dbVersion} (la zi cu codul v${dbInfo.codeVersion})`;
         }
@@ -806,7 +824,7 @@ window.AdminPanel = {
       });
 
     } catch (e) {
-      container.innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`;
+      container.innerHTML = `<p style="color:var(--danger)">Error: ${this.escHtml(e.message)}</p>`;
     }
   },
 

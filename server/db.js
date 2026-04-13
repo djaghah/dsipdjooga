@@ -328,9 +328,9 @@ function markDirtyAndSave() {
 }
 
 // Also save on exit
-process.on('exit', () => { if (db) try { save(); } catch {} });
-process.on('SIGINT', () => { if (db) try { save(); } catch {} process.exit(); });
-process.on('SIGTERM', () => { if (db) try { save(); } catch {} process.exit(); });
+process.once('exit', () => { if (db) try { save(); } catch {} });
+process.once('SIGINT', () => { if (db) try { save(); } catch {} process.exit(); });
+process.once('SIGTERM', () => { if (db) try { save(); } catch {} process.exit(); });
 
 // --- Query helpers ---
 function get(sql, params = []) {

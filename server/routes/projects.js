@@ -27,10 +27,15 @@ router.get('/', (req, res) => {
   res.json(enriched);
 });
 
-// Get single project
+// Get single project (owner or member)
 router.get('/:id', (req, res) => {
-  const project = db.get('SELECT * FROM projects WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
+  const project = db.get('SELECT * FROM projects WHERE id = ?', [req.params.id]);
   if (!project) return res.status(404).json({ error: 'Project not found' });
+  const isOwner = project.user_id === req.user.id;
+  const isMember = !isOwner && db.get(
+    'SELECT id FROM project_members WHERE project_id = ? AND (user_id = ? OR user_email = ?)',
+    [project.id, req.user.id, req.user.email]);
+  if (!isOwner && !isMember) return res.status(404).json({ error: 'Project not found' });
   const count = db.get('SELECT COUNT(*) as count FROM markers WHERE project_id = ?', [project.id]);
   res.json({ ...project, marker_count: count?.count || 0 });
 });
@@ -47,9 +52,12 @@ router.post('/', (req, res) => {
   res.status(201).json(project);
 });
 
-// Update project
+// Update project (owner or project admin)
 router.put('/:id', (req, res) => {
-  const project = db.get('SELECT * FROM projects WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
+  if (!isProjectAdmin(parseInt(req.params.id), req.user.id, req.user.email)) {
+    return res.status(403).json({ error: 'Only project admins can update' });
+  }
+  const project = db.get('SELECT * FROM projects WHERE id = ?', [req.params.id]);
   if (!project) return res.status(404).json({ error: 'Project not found' });
   const { name, description, avatar_index, icon_type, center_lat, center_lng, default_zoom } = req.body;
   db.run(
@@ -64,10 +72,10 @@ router.put('/:id', (req, res) => {
   res.json(updated);
 });
 
-// Delete project
+// Delete project (owner only)
 router.delete('/:id', (req, res) => {
   const project = db.get('SELECT * FROM projects WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
-  if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (!project) return res.status(403).json({ error: 'Only the project owner can delete' });
   db.run('DELETE FROM projects WHERE id = ?', [project.id]);
   res.json({ ok: true });
 });
@@ -107,7 +115,7 @@ router.get('/:id/members', (req, res) => {
 // Invite member (by email)
 router.post('/:id/members', (req, res) => {
   const { email, role } = req.body;
-  if (!email) return res.status(400).json({ error: 'Email required' });
+  if (!email || typeof email !== 'string') return res.status(400).json({ error: 'Email required' });
   if (!['admin', 'viewer'].includes(role)) return res.status(400).json({ error: 'Role must be admin or viewer' });
 
   if (!isProjectAdmin(parseInt(req.params.id), req.user.id, req.user.email)) {
@@ -136,6 +144,9 @@ router.put('/:id/members/:memberId', (req, res) => {
   }
   const { role } = req.body;
   if (!['admin', 'viewer'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
+  const member = db.get('SELECT id FROM project_members WHERE id = ? AND project_id = ?',
+    [req.params.memberId, req.params.id]);
+  if (!member) return res.status(404).json({ error: 'Member not found in this project' });
   db.run('UPDATE project_members SET role = ? WHERE id = ? AND project_id = ?',
     [role, req.params.memberId, req.params.id]);
   res.json({ ok: true });
@@ -146,6 +157,9 @@ router.delete('/:id/members/:memberId', (req, res) => {
   if (!isProjectAdmin(parseInt(req.params.id), req.user.id, req.user.email)) {
     return res.status(403).json({ error: 'Only project admins can remove members' });
   }
+  const member = db.get('SELECT id FROM project_members WHERE id = ? AND project_id = ?',
+    [req.params.memberId, req.params.id]);
+  if (!member) return res.status(404).json({ error: 'Member not found in this project' });
   db.run('DELETE FROM project_members WHERE id = ? AND project_id = ?',
     [req.params.memberId, req.params.id]);
   res.json({ ok: true });

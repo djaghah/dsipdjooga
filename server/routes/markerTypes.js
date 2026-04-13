@@ -42,6 +42,7 @@ router.get('/all', (req, res) => {
 router.post('/', (req, res) => {
   const { name, category, svg_data, scope, project_id } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name is required' });
+  if (scope && !['all', 'project'].includes(scope)) return res.status(400).json({ error: 'Invalid scope' });
 
   const result = db.run(
     `INSERT INTO marker_types (user_id, name, category, svg_data, scope, project_id)
