@@ -441,6 +441,8 @@ docker compose exec dsip sh         # Shell into container
 ```
 USE_GITHUB: true
 USE_AZURE_DEVOPS: false
+PORTS=1978
+START_SERVER=node server.js
 ```
 
 Aceste flag-uri controlează comportamentul comenzilor `cmd save`, `cmd push`, `cmd pull` (vezi mai jos).
@@ -485,6 +487,24 @@ Pentru fiecare finding: severity (high/medium/low), locație (fișier:linie), pr
 - Fix-uri minore (typo, formatting, error handling lipsă clar) — aplic direct.
 - Schimbări semnificative — prezint plan și aștept confirmare.
 
+### `cmd stop`
+Oprește procesele proiectului curent.
+
+1. Citesc `PORTS` din `## Project config`.
+2. Găsesc PID-urile care ascultă pe acele porturi:
+   `Get-NetTCPConnection -LocalPort PORT -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess`
+3. Opresc DOAR acele procese: `Stop-Process -Id PID -Force -ErrorAction SilentlyContinue`
+4. Raportez: port → PID oprit (sau "liber" dacă nu era nimic).
+
+### `cmd start`
+Pornește (sau repornește) procesele proiectului curent.
+
+1. Rulez `cmd stop` — curăț orice instanță existentă.
+2. Citesc `START_SERVER` din `## Project config`.
+3. Pornesc procesul în background din folderul proiectului (Bash `&` sau PowerShell `Start-Process`).
+4. Aștept 2 secunde, verific că portul din `PORTS` e ocupat.
+5. Raportez: proces pornit, port, URL-ul de acces.
+
 ### `cmd new`
 Generez un prompt complet pentru setarea unui proiect nou similar, ca text de copiat într-o instanță VSCode separată. Conține path placeholder, repo URL placeholder, stack detectat, comenzi build/test/run, configurarea de deployment ca referință, folder VM placeholder, plus toate comenzile standard de aici.
 
@@ -496,6 +516,8 @@ cmd save   – checkpoint: rezumat în .claude_md/, commit + push (git/azure)
 cmd push   – doar push pe remote-urile active
 cmd pull   – pull din git/azure + rulează cmd check la final
 cmd check  – citește CLAUDE.md + ultimele .claude_md/ + git log; raport, fără modificări
+cmd stop   – oprește procesele proiectului (porturile din PORTS în config)
+cmd start  – stop + pornire fresh a proceselor din config
 cmd audit  – security + bug + logic; fix minor direct, restul cu plan
 cmd new    – generează prompt pentru proiect nou similar (VSCode separat)
 cmd help   – acest rezumat
