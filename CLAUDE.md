@@ -433,3 +433,71 @@ docker compose exec dsip sh         # Shell into container
 - sql.js: in-memory DB with immediate save to disk on every write
 - Marker icons: SVG → Canvas → PNG data URL (not raw SVG data URLs — they break at zoom)
 - **XSS prevention**: ALWAYS escape user-controlled data before innerHTML insertion. Each module (App, Markers, Projects, MarkerTypes, AdminPanel, MapManager) has an `escHtml()` method. For custom SVG data, render via `<img src="data:image/svg+xml,...">` (sandboxed). For toast messages, use `textContent` not `innerHTML`.
+
+---
+
+## Project config
+
+```
+USE_GITHUB: true
+USE_AZURE_DEVOPS: false
+```
+
+Aceste flag-uri controlează comportamentul comenzilor `cmd save`, `cmd push`, `cmd pull` (vezi mai jos).
+
+## Comenzi standard
+
+Comenzile sunt invocate cu prefix `cmd ` (cu spațiu). Doar mesajele care încep cu `cmd ` sunt comenzi — restul e conversație. Exemple: `cmd save`, `cmd pull`, `cmd audit`. Tolerez case-insensitive și whitespace dublu. Refuz formele fără prefix sau cu `/` (rezervat Claude Code).
+
+### `cmd save`
+Checkpoint al lucrului făcut de la ultimul `cmd save`.
+
+1. Generez un rezumat scurt al modificărilor relevante (ce s-a făcut, decizii, fișiere atinse, ce a rămas neterminat).
+2. Salvez rezumatul în `.claude_md/<YYYY-MM-DD-HHmm>.md`. Creez folderul dacă nu există.
+3. Verific dacă `.claude_md/` ar conține informații sensibile. Dacă da, mă opresc și anunț. Dacă nu, las committable.
+4. `git add` (inclusiv `CLAUDE.md`, `.claude/settings.json`, `.claude_md/`, plus modificările de cod) + `git commit` cu mesaj scurt și descriptiv.
+5. Push:
+   - Dacă `USE_GITHUB=true` → push pe remote GitHub.
+   - Dacă `USE_AZURE_DEVOPS=true` → push și pe remote Azure DevOps.
+6. Raportez ce s-a făcut și ce remote-uri au fost actualizate.
+
+### `cmd push`
+Doar push, fără commit nou. GitHub și/sau Azure conform flag-urilor. Anunț dacă nu e nimic de push.
+
+### `cmd pull`
+1. Pull din remote-ul activ (GitHub prioritar, apoi Azure dacă ambele).
+2. La conflict, mă opresc și raportez — nu rezolv fără confirmare.
+3. La final rulez automat `cmd check`.
+
+### `cmd check`
+Punere la punct, fără modificări.
+
+1. Citesc `CLAUDE.md` complet.
+2. Citesc ultimele 1–3 fișiere din `.claude_md/`.
+3. `git log -10 --oneline` pe branch-ul curent.
+4. Generez rezumat: unde am rămas, ce e în lucru, ce-ar fi de făcut next. Doar raportez.
+
+### `cmd audit`
+Audit pe trei dimensiuni: **security** (secrets, deps vulnerabile, CORS/auth/env, validare input, SQL/XSS/path injection), **bug check** (logică, edge cases, error handling, leaks, race conditions, exceptions înghițite), **logical check** (cod mort, contradicții, contracte încălcate, naming, dead branches).
+
+Pentru fiecare finding: severity (high/medium/low), locație (fișier:linie), propunere de fix.
+
+- Fix-uri minore (typo, formatting, error handling lipsă clar) — aplic direct.
+- Schimbări semnificative — prezint plan și aștept confirmare.
+
+### `cmd new`
+Generez un prompt complet pentru setarea unui proiect nou similar, ca text de copiat într-o instanță VSCode separată. Conține path placeholder, repo URL placeholder, stack detectat, comenzi build/test/run, configurarea de deployment ca referință, folder VM placeholder, plus toate comenzile standard de aici.
+
+NU execut nimic — doar generez promptul.
+
+### `cmd help`
+```
+cmd save   – checkpoint: rezumat în .claude_md/, commit + push (git/azure)
+cmd push   – doar push pe remote-urile active
+cmd pull   – pull din git/azure + rulează cmd check la final
+cmd check  – citește CLAUDE.md + ultimele .claude_md/ + git log; raport, fără modificări
+cmd audit  – security + bug + logic; fix minor direct, restul cu plan
+cmd new    – generează prompt pentru proiect nou similar (VSCode separat)
+cmd help   – acest rezumat
+```
+
