@@ -4,3 +4,7 @@ uploads/*
 !uploads/.gitkeep
 .env
 *.log
+
+# Per-machine Claude Code state
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
